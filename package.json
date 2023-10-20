@@ -1,0 +1,26 @@
+{
+  "name": "a",
+  "module": "./src/index.tsx",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"bun run --hot ./src/index.tsx\" \"bunx tailwindcss -i ./index.css -o ./output.css --watch\""
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.28",
+    "@types/react-dom": "^18.2.13",
+    "@types/uuid": "^9.0.6",
+    "bun-types": "latest",
+    "concurrently": "^8.2.1",
+    "daisyui": "latest",
+    "tailwindcss": "^3.3.3"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "chokidar": "^3.5.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "uuid": "^9.0.1"
+  }
+}
