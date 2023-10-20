@@ -16,7 +16,7 @@ import { argv } from 'process';
 import { getHighlighter } from 'shikiji';
 import { startCaptioning } from './captioning';
 import { render } from 'react-dom';
-import { ReactElement } from 'react';
+import React, { ReactElement } from 'react';
 
 const shiki = await getHighlighter({
   themes: ['nord'],
@@ -103,7 +103,7 @@ function Component(props: { message: string }) {
         <div className="absolute inset-0 -z-10 h-full w-full bg-white bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]"></div>
         <div className="flex h-[100dvh]">
           <div className="flex flex-col items-center px-2 w-[310px] min-w-[310px]">
-            <h1 className="text-xl mt-4">Fast Lora Trainer</h1>
+            <h1 className="text-xl my-4">Fast Lora Trainer</h1>
             {/* <form > */}
             <form
               id="form"
@@ -111,7 +111,7 @@ function Component(props: { message: string }) {
               hx-post="/action"
               hx-swap="innerHTML"
               hx-target="#upload-button"
-              className="flex flex-col"
+              className="flex flex-col gap-1"
               // hx-trigger="click target:#upload-button"
               hx-disinherit="hx-target"
               // @ts-ignore
@@ -122,7 +122,7 @@ function Component(props: { message: string }) {
             "
             >
               <select
-                className="select w-full max-w-xs"
+                className="select select-sm select-bordered w-full max-w-xs"
                 name="base_model"
                 placeholder="base_model"
                 defaultValue="chilloutmix-Ni-pruned-fp32.safetensors"
@@ -140,51 +140,60 @@ function Component(props: { message: string }) {
               name="base_model"
               placeholder="base_model"
             /> */}
+
               <input
                 type="text"
-                className="input input-bordered w-full max-w-xs"
+                className="input input-sm input-bordered w-full max-w-xs"
                 name="name"
                 placeholder="Name"
                 defaultValue="benny"
               />
+
               <input
                 type="text"
-                className="input input-bordered w-full max-w-xs"
-                name="sample_prompt"
-                placeholder="sample_prompt"
-                defaultValue="masterpiece, best quality, 1girl, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy, bad composition, poor, low effort --w 512 --h 512 --d 1 --l 8 --s 30"
-              />
-              <input
-                type="text"
-                className="input input-bordered w-full max-w-xs"
+                className="input input-sm input-bordered w-full max-w-xs"
                 name="instance_name"
                 placeholder="instance_name"
                 defaultValue="benny123"
               />
+
               <input
                 type="text"
-                className="input input-bordered w-full max-w-xs"
+                className="input input-sm input-bordered w-full max-w-xs"
                 name="class_name"
                 placeholder="class_name"
                 defaultValue="man"
               />
               <input
                 type="number"
-                className="input input-bordered w-full max-w-xs"
+                className="input input-sm input-bordered w-full max-w-xs"
                 name="repeat_step"
                 placeholder="40"
                 defaultValue="40"
               />
               <input
                 type="file"
-                className="file-input w-full max-w-xs"
+                className="file-input file-input-bordered file-input-sm w-full max-w-xs"
                 id="files"
                 name="files"
                 multiple
               />
+
+              <div className="form-control w-full max-w-xs">
+                <label className="label">
+                  <span className="label-text text-xs">Sampling</span>
+                </label>
+                <textarea
+                  className="textarea textarea-bordered textarea-sm w-full max-w-xs leading-tight h-20"
+                  name="sample_prompt"
+                  placeholder="sample_prompt"
+                  defaultValue="masterpiece, best quality, 1girl, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy, bad composition, poor, low effort --w 512 --h 512 --d 1 --l 8 --s 30"
+                />
+              </div>
+
               <div className="w-full flex">
                 <button id="upload-button" type="submit" className="btn grow">
-                  Submit
+                  Upload
                 </button>
                 <StartButton />
               </div>
@@ -213,7 +222,7 @@ function StartButton({ text = 'Start' }: { text?: React.ReactNode }) {
     <button
       type="button"
       // id="start-btn"
-      className="btn"
+      className="btn btn-accent"
       hx-post="./start"
       hx-swap="outerHTML"
     >
@@ -272,6 +281,37 @@ type WebSocketData = {
   folderName: string;
   runId: string;
 };
+
+function Collapse(
+  props: React.ComponentProps<'div'> & {
+    heading: React.ReactNode;
+    smallerHeading?: boolean;
+  },
+) {
+  return (
+    <div className="border border-base-300 visible relative">
+      <input
+        type="checkbox"
+        className={
+          'w-full appearance-none absolute cursor-pointer translate-y-0 ' +
+          (props.smallerHeading ? ' h-[20px]' : ' h-[60px]')
+        }
+        hx-on:click="['!h-fit', '!visible', '!opacity-100', '!translate-y-0'].map(v=> this.nextElementSibling.nextElementSibling.classList.toggle(v) ) "
+      />
+      <div
+        className={
+          'collapse-title items-center text-xl font-medium !flex !opacity-100 justify-between pointer-events-none ' +
+          (props.smallerHeading ? ' !p-1 !min-h-fit' : '')
+        }
+      >
+        {props.heading}
+      </div>
+      <div className="w-full h-0 !min-h-fit invisible flex-col items-start opacity-0 transition-all -translate-y-2">
+        <div className="px-2 pb-2">{props.children}</div>
+      </div>
+    </div>
+  );
+}
 
 Bun.serve<WebSocketData>({
   websocket: {
@@ -407,7 +447,7 @@ Bun.serve<WebSocketData>({
 
       return Comp(
         <div>
-          Submit{' '}
+          Upload{' '}
           <div className="text-green-600 text-sm normal-case">Success</div>
         </div>,
       );
@@ -444,7 +484,46 @@ Bun.serve<WebSocketData>({
             </button>
 
             <div id="run-container" hx-swap-oob="beforeend">
-              <div className=" border border-base-300 visible relative">
+              <Collapse
+                heading={
+                  <>
+                    <span>
+                      Run #{globalThis.runCount}{' '}
+                      <span className="text-sm text-gray-500">{runId}</span>
+                    </span>
+                    <span id={`status-${runId}`} className="text-sm">
+                      Running...
+                    </span>
+                  </>
+                }
+              >
+                <div className="w-full">
+                  <Collapse
+                    smallerHeading
+                    heading={
+                      <span className="text-xs">
+                        Expand to see running command
+                      </span>
+                    }
+                  >
+                    <p
+                      dangerouslySetInnerHTML={{
+                        __html: code,
+                      }}
+                    ></p>
+                  </Collapse>
+                </div>
+                <div
+                  hx-ext="ws"
+                  ws-connect={`/ws?runId=${runId}&folder=${folderPaths.modelName}`}
+                >
+                  <div
+                    id={`image-container-${runId}`}
+                    className="grid grid-cols-3"
+                  ></div>
+                </div>
+              </Collapse>
+              {/* <div className="border border-base-300 visible relative">
                 <input
                   type="checkbox"
                   className="w-full h-[60px] appearance-none absolute cursor-pointer translate-y-0"
@@ -479,7 +558,7 @@ Bun.serve<WebSocketData>({
                     </div>
                   </div>
                 </div>
-              </div>
+              </div> */}
             </div>
           </>,
         );
