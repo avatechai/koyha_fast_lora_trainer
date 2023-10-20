@@ -1,29 +1,29 @@
-import { ServerWebSocket, Subprocess } from "bun";
-import { renderToReadableStream, renderToString } from "react-dom/server";
-import { mkdir, readdir } from "fs/promises";
+import { ServerWebSocket, Subprocess } from 'bun';
+import { renderToReadableStream, renderToString } from 'react-dom/server';
+import { mkdir, readdir } from 'fs/promises';
 import {
   ChildProcess,
   ChildProcessWithoutNullStreams,
   spawn,
-} from "child_process";
-import { dirname, extname, join, relative } from "path";
+} from 'child_process';
+import { dirname, extname, join, relative } from 'path';
 // import { cache } from 'react'
-import { v4 as uuidv4 } from "uuid";
-import chokidar from "chokidar";
-import { exists, readFileSync } from "fs";
-import { argv } from "process";
+import { v4 as uuidv4 } from 'uuid';
+import chokidar from 'chokidar';
+import { exists, readFileSync } from 'fs';
+import { argv } from 'process';
 
-import { getHighlighter } from 'shikiji'
-import { startCaptioning } from "./captioning";
-import { render } from "react-dom";
-import { ReactElement } from "react";
+import { getHighlighter } from 'shikiji';
+import { startCaptioning } from './captioning';
+import { render } from 'react-dom';
+import { ReactElement } from 'react';
 
 const shiki = await getHighlighter({
   themes: ['nord'],
   langs: ['bash'],
-})
+});
 
-export let debug = (argv.length >= 3 && argv[2] == "--debug") ?? false
+export let debug = (argv.length >= 3 && argv[2] == '--debug') ?? false;
 
 console.log(debug);
 
@@ -52,23 +52,27 @@ if (!globalThis.firstTime) {
 
   globalThis.allClients = {};
 
-  process.on("exit", async () => {
-    await Promise.all(Object.values(globalThis.allClients).map(x => {
-      return x.watcher?.close()
-    }))
+  process.on('exit', async () => {
+    await Promise.all(
+      Object.values(globalThis.allClients).map((x) => {
+        return x.watcher?.close();
+      }),
+    );
     if (globalThis.loraProc) {
-      console.log("killing " + globalThis.loraProc.pid);
-      spawn("sh", ["-c", "kill -INT -" + globalThis.loraProc.pid]);
+      console.log('killing ' + globalThis.loraProc.pid);
+      spawn('sh', ['-c', 'kill -INT -' + globalThis.loraProc.pid]);
     }
     process.exit();
   });
-  process.on("SIGINT", async () => {
-    await Promise.all(Object.values(globalThis.allClients).map(x => {
-      return x.watcher?.close()
-    }))
+  process.on('SIGINT', async () => {
+    await Promise.all(
+      Object.values(globalThis.allClients).map((x) => {
+        return x.watcher?.close();
+      }),
+    );
     if (globalThis.loraProc) {
-      console.log("killing " + globalThis.loraProc.pid);
-      spawn("sh", ["-c", "kill -INT -" + globalThis.loraProc.pid]);
+      console.log('killing ' + globalThis.loraProc.pid);
+      spawn('sh', ['-c', 'kill -INT -' + globalThis.loraProc.pid]);
     }
     process.exit();
   });
@@ -77,11 +81,11 @@ if (!globalThis.firstTime) {
 }
 
 export let modelFolders =
-  "/home/avatech/Desktop/projects/stable-diffusion-webui/models/Stable-diffusion/";
+  '/home/avatech/Desktop/projects/stable-diffusion-webui/models/Stable-diffusion/';
 
-let folderPath = debug ? ["chilloutmix-Ni-pruned-fp32.safetensors"] : (await readdir(modelFolders)).filter((x) =>
-  x.endsWith("safetensors")
-);
+let folderPath = debug
+  ? ['chilloutmix-Ni-pruned-fp32.safetensors']
+  : (await readdir(modelFolders)).filter((x) => x.endsWith('safetensors'));
 // let folderPath = ["chilloutmix-Ni-pruned-fp32.safetensors"]
 
 function Component(props: { message: string }) {
@@ -179,7 +183,9 @@ function Component(props: { message: string }) {
                 multiple
               />
               <div className="w-full flex">
-                <button id="upload-button" type="submit" className="btn grow" >Submit</button>
+                <button id="upload-button" type="submit" className="btn grow">
+                  Submit
+                </button>
                 <StartButton />
               </div>
               <progress
@@ -191,15 +197,18 @@ function Component(props: { message: string }) {
             </form>
           </div>
           <div className="overflow-y-auto w-full">
-            <div id="run-container" className="flex flex-col-reverse grow justify-end h-fit " />
+            <div
+              id="run-container"
+              className="flex flex-col-reverse grow justify-end h-fit "
+            />
           </div>
         </div>
       </body>
-    </html >
+    </html>
   );
 }
 
-function StartButton({ text = "Start" }: { text?: React.ReactNode }) {
+function StartButton({ text = 'Start' }: { text?: React.ReactNode }) {
   return (
     <button
       type="button"
@@ -223,7 +232,6 @@ export type FolderPaths = {
   log: string;
 };
 
-
 function startLoraTraining(folderPaths: FolderPaths) {
   const modelPath = modelFolders + folderPaths.base_model;
   const dataDir = join(dirname(__dirname), folderPaths.img_root); //"/home/avatech/Desktop/projects/kohya_ss/dataset/img";
@@ -231,18 +239,17 @@ function startLoraTraining(folderPaths: FolderPaths) {
   const loggingDir = join(dirname(__dirname), folderPaths.log);
   const modelName = folderPaths.modelName;
   const samplePromptPath = join(dirname(__dirname), folderPaths.sample_prompt); //"/home/avatech/Desktop/projects/kohya_ss/dataset/model/sample/prompt.txt";
-  const scripPath = "./../train_db.py";
+  const scripPath = './../train_db.py';
   const command = `source \"./../venv/bin/activate\" && CUDA_VISIBLE_DEVICES=1 accelerate launch --num_cpu_threads_per_process=2 "${scripPath}" --enable_bucket --min_bucket_reso=256 --max_bucket_reso=2048 --pretrained_model_name_or_path="${modelPath}" --train_data_dir="${dataDir}" --resolution="512,512" --output_dir="${outputDir}" --logging_dir="${loggingDir}" --save_model_as=safetensors --output_name="${modelName}" --lr_scheduler_num_cycles="1" --max_data_loader_n_workers="0" --learning_rate="0.0001" --lr_scheduler="cosine" --lr_warmup_steps="595" --train_batch_size="2" --max_train_steps="5950" --save_every_n_epochs="1" --mixed_precision="fp16" --save_precision="fp16" --seed="7" --caption_extension=".txt" --cache_latents --optimizer_type="AdamW" --max_data_loader_n_workers="0" --clip_skip=2 --bucket_reso_steps=64 --flip_aug --xformers --bucket_no_upscale --noise_offset=0.0 --sample_sampler=euler_a --sample_prompts="${samplePromptPath}" --sample_every_n_steps="128"`;
 
   console.log(command);
   globalThis.runCount++;
 
-  if (debug)
-    return command
+  if (debug) return command;
 
-  let cmdarray = command.split(" ");
+  let cmdarray = command.split(' ');
   globalThis.loraProc = spawn(cmdarray.shift()!, cmdarray, {
-    stdio: "inherit",
+    stdio: 'inherit',
     shell: true,
     detached: true,
   });
@@ -250,10 +257,9 @@ function startLoraTraining(folderPaths: FolderPaths) {
   return command;
 }
 
-
 async function Comp(children: React.ReactNode) {
   return new Response(await renderToReadableStream(children), {
-    headers: { "Content-Type": "text/html" },
+    headers: { 'Content-Type': 'text/html' },
   });
 }
 
@@ -273,17 +279,21 @@ Bun.serve<WebSocketData>({
       console.log(ws.data);
 
       const folder = `data/${ws.data.folderName}/model/sample`;
-      console.log("connected + " + ws.data.runId, folder);
+      console.log('connected + ' + ws.data.runId, folder);
 
       const watcher = chokidar.watch(folder, {
         ignored: /^\./,
         persistent: true,
       });
 
-      watcher.on("add", async (filepath) => {
-        console.log("add ", filepath, extname(filepath));
+      watcher.on('add', async (filepath) => {
+        console.log('add ', filepath, extname(filepath));
 
-        if (extname(filepath) === ".jpg" || extname(filepath) === ".jpeg" || extname(filepath) === ".png") {
+        if (
+          extname(filepath) === '.jpg' ||
+          extname(filepath) === '.jpeg' ||
+          extname(filepath) === '.png'
+        ) {
           // // delay to wait for file to be written
           await new Promise((resolve) => setTimeout(resolve, 1000));
 
@@ -291,7 +301,7 @@ Bun.serve<WebSocketData>({
             <div id="image-container-${ws.data.runId}" hx-swap-oob="beforeend" >
             <img src="./image/${encodeURI(filepath)}"/>
             </div>
-          `)
+          `);
         }
       });
 
@@ -303,16 +313,16 @@ Bun.serve<WebSocketData>({
     },
     async close(ws) {
       await globalThis.allClients[ws.data.runId].watcher?.close();
-      console.log("Removing", globalThis.allClients[ws.data.runId].runId);
+      console.log('Removing', globalThis.allClients[ws.data.runId].runId);
       delete globalThis.allClients[ws.data.runId];
     },
-    message(ws, message) { },
+    message(ws, message) {},
   },
   async fetch(req, server) {
     const url = new URL(req.url);
     const params = url.searchParams;
 
-    if (url.pathname === "/ws") {
+    if (url.pathname === '/ws') {
       // const sessionId = await generateSessionId();
 
       // console.log("hello", url, params.get("folder"), url.searchParams.toString());
@@ -323,37 +333,37 @@ Bun.serve<WebSocketData>({
         // },
         data: {
           // id: runId,
-          folderName: params.get("folder")!,
-          runId: params.get("runId")!,
+          folderName: params.get('folder')!,
+          runId: params.get('runId')!,
         } as WebSocketData,
       });
     }
 
     // return index.html for root path
-    if (url.pathname === "/") {
+    if (url.pathname === '/') {
       return Comp(<Component message="Hello from server!" />);
     }
 
     console.log(url.pathname);
 
-    if (url.pathname === "/index.css") {
-      return new Response(Bun.file("output.css"), {
+    if (url.pathname === '/index.css') {
+      return new Response(Bun.file('output.css'), {
         headers: {
-          "Content-Type": "text/css",
+          'Content-Type': 'text/css',
         },
       });
     }
 
     // parse formdata at /action
-    if (url.pathname === "/action") {
+    if (url.pathname === '/action') {
       const formdata = await req.formData();
-      const name = formdata.get("name") as string;
-      const base_model = formdata.get("base_model") as string;
-      const class_name = formdata.get("class_name") as string;
-      const instance_name = formdata.get("instance_name") as string;
-      const sample_prompt = formdata.get("sample_prompt") as string;
+      const name = formdata.get('name') as string;
+      const base_model = formdata.get('base_model') as string;
+      const class_name = formdata.get('class_name') as string;
+      const instance_name = formdata.get('instance_name') as string;
+      const sample_prompt = formdata.get('sample_prompt') as string;
       const repeat_step = Number.parseInt(
-        formdata.get("repeat_step") as string
+        formdata.get('repeat_step') as string,
       );
 
       const folderName = `${repeat_step}_${instance_name} ${class_name}`;
@@ -370,7 +380,7 @@ Bun.serve<WebSocketData>({
           return mkdir(`${x}`, {
             recursive: true,
           });
-        })
+        }),
       );
 
       globalThis.folderPaths = {
@@ -383,11 +393,11 @@ Bun.serve<WebSocketData>({
       await Bun.write(globalThis.folderPaths.sample_prompt, sample_prompt);
 
       const filesOps: Promise<unknown>[] = [];
-      formdata.getAll("files").forEach((x, i) => {
-        let fileType = (x as Blob).type.replace("image/", ".");
-        if (fileType == ".jpeg") fileType = ".jpg";
+      formdata.getAll('files').forEach((x, i) => {
+        let fileType = (x as Blob).type.replace('image/', '.');
+        if (fileType == '.jpeg') fileType = '.jpg';
 
-        let filePath = globalThis.folderPaths?.img + "/image_" + i + fileType;
+        let filePath = globalThis.folderPaths?.img + '/image_' + i + fileType;
         // console.log(filePath);
 
         filesOps.push(Bun.write(filePath, x));
@@ -395,25 +405,30 @@ Bun.serve<WebSocketData>({
       await Promise.allSettled(filesOps);
       await startCaptioning(globalThis.folderPaths);
 
-      return Comp(<div>Submit <div className="text-green-600 text-sm normal-case">Success</div></div>);
+      return Comp(
+        <div>
+          Submit{' '}
+          <div className="text-green-600 text-sm normal-case">Success</div>
+        </div>,
+      );
     }
 
-    if (url.pathname.startsWith("/image")) {
-      let file = url.pathname.replace("/image/", "")
+    if (url.pathname.startsWith('/image')) {
+      let file = url.pathname.replace('/image/', '');
       console.log(file);
 
       // exists(file, (exists) => {
       //   console.log(exists);
       // })
 
-      return new Response(Bun.file(decodeURI(file)))
+      return new Response(Bun.file(decodeURI(file)));
     }
 
-    if (url.pathname === "/start") {
+    if (url.pathname === '/start') {
       const folderPaths = globalThis.folderPaths;
       if (folderPaths) {
         const command = startLoraTraining(folderPaths);
-        const code = shiki.codeToHtml(command, { lang: 'bash', theme: 'nord' })
+        const code = shiki.codeToHtml(command, { lang: 'bash', theme: 'nord' });
         const runId = generateSessionId();
 
         return Comp(
@@ -421,7 +436,7 @@ Bun.serve<WebSocketData>({
             <button
               // id="stop-btn"
               className="btn"
-              hx-post={"./stop?runId=" + runId}
+              hx-post={'./stop?runId=' + runId}
               // hx-swap-oob="false"
               hx-swap="outerHTML"
             >
@@ -429,28 +444,44 @@ Bun.serve<WebSocketData>({
             </button>
 
             <div id="run-container" hx-swap-oob="beforeend">
-              <div className=" border border-base-300 visible"  >
-                <input type="checkbox" className="w-full h-20 appearance-none absolute cursor-pointer" hx-on:click="['!flex', '!opacity-100'].map(v=> this.nextElementSibling.nextElementSibling.classList.toggle(v) ) "/>
+              <div className=" border border-base-300 visible relative">
+                <input
+                  type="checkbox"
+                  className="w-full h-[60px] appearance-none absolute cursor-pointer translate-y-0"
+                  hx-on:click="['!h-fit', '!visible', '!opacity-100', '!translate-y-0'].map(v=> this.nextElementSibling.nextElementSibling.classList.toggle(v) ) "
+                />
                 <div className="collapse-title text-xl font-medium !flex !opacity-100 justify-between pointer-events-none">
-                  <span>Run #{globalThis.runCount} <span className="text-sm text-gray-500">{runId}</span></span>
-                  <span id={`status-${runId}`} className="text-sm">Running...</span>
+                  <span>
+                    Run #{globalThis.runCount}{' '}
+                    <span className="text-sm text-gray-500">{runId}</span>
+                  </span>
+                  <span id={`status-${runId}`} className="text-sm">
+                    Running...
+                  </span>
                 </div>
-                <div className="hidden !min-h-fit flex-col items-start opacity-0 transition-all">
-                  <div>
-                    <p dangerouslySetInnerHTML={{
-                      __html: code
-                    }}></p>
-                  </div>
-                  <div
-                    hx-ext="ws"
-                    ws-connect={`/ws?runId=${runId}&folder=${folderPaths.modelName}`}
-                  >
-                    <div id={`image-container-${runId}`} className="grid grid-cols-3"></div>
+                <div className="w-full h-0 !min-h-fit invisible flex-col items-start opacity-0 transition-all -translate-y-2">
+                  <div className="px-2 pb-2">
+                    <div className="w-full">
+                      <p
+                        dangerouslySetInnerHTML={{
+                          __html: code,
+                        }}
+                      ></p>
+                    </div>
+                    <div
+                      hx-ext="ws"
+                      ws-connect={`/ws?runId=${runId}&folder=${folderPaths.modelName}`}
+                    >
+                      <div
+                        id={`image-container-${runId}`}
+                        className="grid grid-cols-3"
+                      ></div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </>
+          </>,
         );
       } else {
         return Comp(
@@ -463,27 +494,34 @@ Bun.serve<WebSocketData>({
                 </div>
               </div>
             }
-          />
+          />,
         );
       }
     }
 
-    if (url.pathname === "/stop") {
-      let runId = params.get("runId")
+    if (url.pathname === '/stop') {
+      let runId = params.get('runId');
       // <span id={`${runId}-status`} className="text-sm">Running...</span>
 
       globalThis.allClients[runId!].ws.send(
         CompToString(
-          <span id={`status-${runId}`} className="text-sm text-red-700" hx-swap-oob="true" > Stopped</span >
-        )
-      )
+          <span
+            id={`status-${runId}`}
+            className="text-sm text-red-700 text-center h-fit"
+            hx-swap-oob="true"
+          >
+            {' '}
+            Stopped
+          </span>,
+        ),
+      );
 
-      globalThis.allClients[runId!].ws.close(1000)
+      globalThis.allClients[runId!].ws.close(1000);
 
       if (globalThis.loraProc && !globalThis.loraProc.killed) {
         // loraProc.kill('SIGINT');
         // process.kill(loraProc.pid! + 1, 'SIGINT')
-        spawn("sh", ["-c", "kill -INT -" + globalThis.loraProc.pid]);
+        spawn('sh', ['-c', 'kill -INT -' + globalThis.loraProc.pid]);
         loraProc = undefined;
         // await loraProc.;
         return Comp(<StartButton />);
@@ -491,7 +529,7 @@ Bun.serve<WebSocketData>({
       return Comp(<StartButton />);
     }
 
-    return new Response("Not Found", { status: 404 });
+    return new Response('Not Found', { status: 404 });
   },
 });
 

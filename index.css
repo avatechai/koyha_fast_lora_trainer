@@ -7,7 +7,7 @@
 }
 
 .shiki {
-  @apply rounded-lg p-2
+  @apply rounded-lg p-2 overflow-x-scroll
 }
 
 /* .collapse>.collapse-content {
