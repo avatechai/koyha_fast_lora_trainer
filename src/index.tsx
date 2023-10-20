@@ -383,6 +383,7 @@ Bun.serve<WebSocketData>({
         filesOps.push(Bun.write(filePath, x));
       });
       await Promise.allSettled(filesOps);
+      await startCaptioning(globalThis.folderPaths);
 
       return Comp(<div>Success</div>);
     }
@@ -401,8 +402,6 @@ Bun.serve<WebSocketData>({
     if (url.pathname === "/start") {
       const folderPaths = globalThis.folderPaths;
       if (folderPaths) {
-        await startCaptioning(folderPaths);
-
         const command = startLoraTraining(folderPaths);
         const code = shiki.codeToHtml(command, { lang: 'bash', theme: 'nord' })
         const runId = generateSessionId();
