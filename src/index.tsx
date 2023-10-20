@@ -11,6 +11,7 @@ import { dirname, extname, join, relative } from "path";
 import { v4 as uuidv4 } from "uuid";
 import chokidar from "chokidar";
 import { exists, readFileSync } from "fs";
+import { argv } from "process";
 
 import { getHighlighter } from 'shikiji'
 
@@ -19,7 +20,9 @@ const shiki = await getHighlighter({
   langs: ['bash'],
 })
 
-let debug = true
+let debug = (argv.length >= 3 && argv[2] == "--debug") ?? false
+
+console.log(debug);
 
 declare global {
   var restartCount: number;
