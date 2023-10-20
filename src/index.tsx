@@ -23,7 +23,7 @@ const shiki = await getHighlighter({
   langs: ['bash'],
 })
 
-let debug = (argv.length >= 3 && argv[2] == "--debug") ?? false
+export let debug = (argv.length >= 3 && argv[2] == "--debug") ?? false
 
 console.log(debug);
 

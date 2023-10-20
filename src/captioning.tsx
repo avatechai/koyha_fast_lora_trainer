@@ -13,7 +13,10 @@ export function startCaptioning(folderPaths: FolderPaths) {
 
     console.log(command);
 
-    if (debug) return command;
+    if (debug) {
+      resolve(null);
+      return
+    }
 
     const cmdarray = command.split(" ");
     const process = spawn(cmdarray.shift()!, cmdarray, {
