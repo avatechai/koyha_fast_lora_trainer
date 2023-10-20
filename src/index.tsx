@@ -12,7 +12,62 @@ import { v4 as uuidv4 } from "uuid";
 import chokidar from "chokidar";
 import { exists, readFileSync } from "fs";
 
+import { getHighlighter } from 'shikiji'
+
+const shiki = await getHighlighter({
+  themes: ['nord'],
+  langs: ['bash'],
+})
+
 let debug = true
+
+declare global {
+  var restartCount: number;
+  var firstTime: boolean;
+  var runCount: number;
+  var loraProc: ChildProcess | undefined; //Subprocess;
+  var folderPaths: FolderPaths | undefined;
+
+  var allClients: Record<
+    string,
+    {
+      ws: ServerWebSocket<WebSocketData>;
+      folderName: string;
+      watcher: chokidar.FSWatcher;
+    }
+  >;
+}
+
+if (!globalThis.firstTime) {
+  globalThis.firstTime = true;
+  globalThis.restartCount = 0;
+  globalThis.runCount = 0;
+
+  globalThis.allClients = {};
+
+  process.on("exit", async () => {
+    await Promise.all(Object.values(globalThis.allClients).map(x => {
+      return x.watcher?.close()
+    }))
+    if (globalThis.loraProc) {
+      console.log("killing " + globalThis.loraProc.pid);
+      spawn("sh", ["-c", "kill -INT -" + globalThis.loraProc.pid]);
+    }
+    process.exit();
+  });
+  process.on("SIGINT", async () => {
+    await Promise.all(Object.values(globalThis.allClients).map(x => {
+      return x.watcher?.close()
+    }))
+    if (globalThis.loraProc) {
+      console.log("killing " + globalThis.loraProc.pid);
+      spawn("sh", ["-c", "kill -INT -" + globalThis.loraProc.pid]);
+    }
+    process.exit();
+  });
+} else {
+  globalThis.restartCount++;
+}
 
 let modelFolders =
   "/home/avatech/Desktop/projects/stable-diffusion-webui/models/Stable-diffusion/";
@@ -141,8 +196,6 @@ function StartButton({ text = "Start" }: { text?: React.ReactNode }) {
   );
 }
 
-let loraProc: ChildProcess | undefined; //Subprocess;
-
 type FolderPaths = {
   base_model: string;
   modelName: string;
@@ -153,7 +206,6 @@ type FolderPaths = {
   log: string;
 };
 
-let folderPaths: FolderPaths | undefined;
 
 function startLoraTraining(folderPaths: FolderPaths) {
   const modelPath = modelFolders + folderPaths.base_model;
@@ -195,7 +247,6 @@ function startLoraTraining(folderPaths: FolderPaths) {
   // loraProc = Bun.spawn(["source \"./../../venv/bin/activate\""]);
 }
 
-let runCount = 0;
 
 async function Comp(children: React.ReactNode) {
   return new Response(await renderToReadableStream(children), {
@@ -208,26 +259,6 @@ type WebSocketData = {
   folderName: string;
 };
 
-const allClients: Record<
-  string,
-  {
-    ws: ServerWebSocket<WebSocketData>;
-    folderName: string;
-    watcher: chokidar.FSWatcher;
-  }
-> = {};
-
-function getMimeType(ext: string) {
-  switch (ext) {
-    case ".jpg":
-      return "image/jpeg";
-    case ".png":
-      return "image/png";
-    default:
-      return "application/octet-stream";
-  }
-}
-
 Bun.serve<WebSocketData>({
   websocket: {
     async open(ws) {
@@ -238,7 +269,7 @@ Bun.serve<WebSocketData>({
 
       const watcher = chokidar.watch(folder, {
         ignored: /^\./,
-        persistent: true,
+        persistent: false,
       });
 
       watcher.on("add", async (filepath) => {
@@ -264,16 +295,16 @@ Bun.serve<WebSocketData>({
         }
       });
 
-      allClients[ws.data.id] = {
+      globalThis.allClients[ws.data.id] = {
         ws,
         folderName: ws.data.folderName,
         watcher,
       };
     },
     async close(ws) {
-      await allClients[ws.data.id].watcher?.close();
-      console.log("Removing", allClients[ws.data.id].folderName);
-      delete allClients[ws.data.id];
+      await globalThis.allClients[ws.data.id].watcher?.close();
+      console.log("Removing", globalThis.allClients[ws.data.id].folderName);
+      delete globalThis.allClients[ws.data.id];
     },
     message(ws, message) { },
   },
@@ -341,21 +372,21 @@ Bun.serve<WebSocketData>({
         })
       );
 
-      folderPaths = {
+      globalThis.folderPaths = {
         modelName: name,
         base_model: base_model,
         sample_prompt: `data/${name}/prompt.txt`,
         ...temp,
       };
 
-      await Bun.write(folderPaths.sample_prompt, sample_prompt);
+      await Bun.write(globalThis.folderPaths.sample_prompt, sample_prompt);
 
       const filesOps: Promise<unknown>[] = [];
       formdata.getAll("files").forEach((x, i) => {
         let fileType = (x as Blob).type.replace("image/", ".");
         if (fileType == ".jpeg") fileType = ".jpg";
 
-        let filePath = folderPaths?.img + "/image_" + i + fileType;
+        let filePath = globalThis.folderPaths?.img + "/image_" + i + fileType;
         // console.log(filePath);
 
         filesOps.push(Bun.write(filePath, x));
@@ -377,8 +408,11 @@ Bun.serve<WebSocketData>({
     }
 
     if (url.pathname === "/start") {
+      const folderPaths = globalThis.folderPaths;
       if (folderPaths) {
         const command = startLoraTraining(folderPaths);
+
+        const code = shiki.codeToHtml(command, { lang: 'bash', theme: 'nord' })
 
         return Comp(
           <>
@@ -397,7 +431,11 @@ Bun.serve<WebSocketData>({
                 Run #{runCount}
               </div>
               <div className="collapse-content">
-                <p>{command}</p>
+                <div>
+                  <p dangerouslySetInnerHTML={{
+                    __html: code
+                  }}></p>
+                </div>
                 <div
                   hx-ext="ws"
                   ws-connect={`/ws?folder=${folderPaths.modelName}`}
@@ -440,24 +478,6 @@ Bun.serve<WebSocketData>({
   },
 });
 
-process.on("exit", async () => {
-  await Promise.all(Object.values(allClients).map(x => {
-    return x.watcher?.close()
-  }))
-  if (loraProc) {
-    console.log("killing " + loraProc.pid);
-    spawn("sh", ["-c", "kill -INT -" + loraProc.pid]);
-  }
-});
-process.on("SIGINT", async () => {
-  await Promise.all(Object.values(allClients).map(x => {
-    return x.watcher?.close()
-  }))
-  if (loraProc) {
-    console.log("killing " + loraProc.pid);
-    spawn("sh", ["-c", "kill -INT -" + loraProc.pid]);
-  }
-});
 function generateSessionId() {
   return uuidv4();
 }

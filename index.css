@@ -1,3 +1,11 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.shiki > code > span{
+    text-wrap: wrap;
+}
+
+.shiki{
+  @apply rounded-lg p-2
+}
