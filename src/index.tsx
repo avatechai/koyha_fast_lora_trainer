@@ -13,13 +13,14 @@ import chokidar from "chokidar";
 import { exists, readFileSync } from "fs";
 
 import { getHighlighter } from 'shikiji'
+import { startCaptioning } from "./captioning";
 
 const shiki = await getHighlighter({
   themes: ['nord'],
   langs: ['bash'],
 })
 
-let debug = true
+export let debug = false
 
 declare global {
   var restartCount: number;
@@ -69,7 +70,7 @@ if (!globalThis.firstTime) {
   globalThis.restartCount++;
 }
 
-let modelFolders =
+export let modelFolders =
   "/home/avatech/Desktop/projects/stable-diffusion-webui/models/Stable-diffusion/";
 
 let folderPath = debug ? ["chilloutmix-Ni-pruned-fp32.safetensors"] : (await readdir(modelFolders)).filter((x) =>
@@ -196,7 +197,7 @@ function StartButton({ text = "Start" }: { text?: React.ReactNode }) {
   );
 }
 
-type FolderPaths = {
+export type FolderPaths = {
   base_model: string;
   modelName: string;
   img: string;
@@ -411,6 +412,8 @@ Bun.serve<WebSocketData>({
     if (url.pathname === "/start") {
       const folderPaths = globalThis.folderPaths;
       if (folderPaths) {
+        await startCaptioning(folderPaths);
+
         const command = startLoraTraining(folderPaths);
 
         const code = shiki.codeToHtml(command, { lang: 'bash', theme: 'nord' })
