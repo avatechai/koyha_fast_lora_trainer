@@ -1,5 +1,5 @@
 import { ServerWebSocket, Subprocess } from "bun";
-import { renderToReadableStream } from "react-dom/server";
+import { renderToReadableStream, renderToString } from "react-dom/server";
 import { mkdir, readdir } from "fs/promises";
 import {
   ChildProcess,
@@ -14,6 +14,8 @@ import { exists, readFileSync } from "fs";
 import { argv } from "process";
 
 import { getHighlighter } from 'shikiji'
+import { render } from "react-dom";
+import { ReactElement } from "react";
 
 const shiki = await getHighlighter({
   themes: ['nord'],
@@ -35,7 +37,8 @@ declare global {
     string,
     {
       ws: ServerWebSocket<WebSocketData>;
-      folderName: string;
+      // folderName: string;
+      runId: string;
       watcher: chokidar.FSWatcher;
     }
   >;
@@ -225,12 +228,7 @@ function startLoraTraining(folderPaths: FolderPaths) {
 
   if (debug)
     return command
-  // return;
-  // loraProc = Bun.spawn(["source", "\"./../../venv/bin/activate\""], {
-  //   stdout: 'inherit',
-  //   env: process.env
-  // });
-  // let cmd = 'source \"./../venv/bin/activate\" && '
+
   let cmdarray = command.split(" ");
   globalThis.loraProc = spawn(cmdarray.shift()!, cmdarray, {
     stdio: "inherit",
@@ -238,17 +236,7 @@ function startLoraTraining(folderPaths: FolderPaths) {
     detached: true,
   });
 
-
   return command;
-  // loraProc.on("close", () => {
-  //   loraProc.
-  // })
-  // loraProc.stdout.on('data', (data) => console.log(data.toString()));
-  // loraProc = Bun.spawn(["echo \$PATH"], {
-  //   stdout: 'inherit',
-  //   // env: process.env
-  // });
-  // loraProc = Bun.spawn(["source \"./../../venv/bin/activate\""]);
 }
 
 
@@ -258,9 +246,14 @@ async function Comp(children: React.ReactNode) {
   });
 }
 
+function CompToString(children: ReactElement) {
+  return renderToString(children);
+}
+
 type WebSocketData = {
-  id: string;
+  // id: string;
   folderName: string;
+  runId: string;
 };
 
 Bun.serve<WebSocketData>({
@@ -269,46 +262,38 @@ Bun.serve<WebSocketData>({
       console.log(ws.data);
 
       const folder = `data/${ws.data.folderName}/model/sample`;
-      console.log("connected + " + ws.data.folderName, folder);
+      console.log("connected + " + ws.data.runId, folder);
 
       const watcher = chokidar.watch(folder, {
         ignored: /^\./,
-        persistent: false,
+        persistent: true,
       });
 
       watcher.on("add", async (filepath) => {
         console.log("add ", filepath, extname(filepath));
 
         if (extname(filepath) === ".jpg" || extname(filepath) === ".jpeg" || extname(filepath) === ".png") {
-          // const image = await Bun.file(filepath);
-          // const base64Image = Buffer.from(await image.arrayBuffer()).toString(
-          //   "base64"
-          // );
-          // const imageData = `data:${getMimeType(
-          //   extname(filepath)
-          // )};base64,${base64Image}`;
-          // const file = relative(filepath, import.meta.dir);
-
-          // dirname(filepath) + "/" + encodeURIComponent(filepath.replace(dirname(filepath), ""))
+          // // delay to wait for file to be written
+          // await new Promise((resolve) => setTimeout(resolve, 1000));
 
           ws.send(`
-          <div id="image-container" hx-swap-oob="beforeend" >
-          <img src="./image/${encodeURI(filepath)}"/>
-          </div>
-      `)
+            <div id="image-container-${ws.data.runId}" hx-swap-oob="beforeend" >
+            <img src="./image/${encodeURI(filepath)}"/>
+            </div>
+          `)
         }
       });
 
-      globalThis.allClients[ws.data.id] = {
+      globalThis.allClients[ws.data.runId] = {
         ws,
-        folderName: ws.data.folderName,
+        runId: ws.data.runId,
         watcher,
       };
     },
     async close(ws) {
-      await globalThis.allClients[ws.data.id].watcher?.close();
-      console.log("Removing", globalThis.allClients[ws.data.id].folderName);
-      delete globalThis.allClients[ws.data.id];
+      await globalThis.allClients[ws.data.runId].watcher?.close();
+      console.log("Removing", globalThis.allClients[ws.data.runId].runId);
+      delete globalThis.allClients[ws.data.runId];
     },
     message(ws, message) { },
   },
@@ -317,7 +302,7 @@ Bun.serve<WebSocketData>({
     const params = url.searchParams;
 
     if (url.pathname === "/ws") {
-      const sessionId = await generateSessionId();
+      // const sessionId = await generateSessionId();
 
       // console.log("hello", url, params.get("folder"), url.searchParams.toString());
 
@@ -326,9 +311,10 @@ Bun.serve<WebSocketData>({
         //   "Set-Cookie": `SessionId=${sessionId}`,
         // },
         data: {
-          id: sessionId,
+          // id: runId,
           folderName: params.get("folder")!,
-        },
+          runId: params.get("runId")!,
+        } as WebSocketData,
       });
     }
 
@@ -415,24 +401,25 @@ Bun.serve<WebSocketData>({
       const folderPaths = globalThis.folderPaths;
       if (folderPaths) {
         const command = startLoraTraining(folderPaths);
-
         const code = shiki.codeToHtml(command, { lang: 'bash', theme: 'nord' })
+        const runId = generateSessionId();
 
         return Comp(
           <>
             <button
               id="stop-btn"
               className="btn"
-              hx-post="./stop"
+              hx-post={"./stop?runId=" + runId}
               hx-swap="outerHTML"
             >
               Stop
             </button>
 
-            <div className="collapse bg-base-200 border border-base-300 collapse-arrow">
+            <div className="collapse border border-base-300 ">
               <input type="checkbox" />
-              <div className="collapse-title text-xl font-medium">
-                Run #{globalThis.runCount}
+              <div className="collapse-title text-xl font-medium flex justify-between items-center">
+                <span>Run #{globalThis.runCount} <span className="text-sm text-gray-500">{runId}</span></span>
+                <span id={`status-${runId}`} className="text-sm">Running...</span>
               </div>
               <div className="collapse-content">
                 <div>
@@ -442,9 +429,9 @@ Bun.serve<WebSocketData>({
                 </div>
                 <div
                   hx-ext="ws"
-                  ws-connect={`/ws?folder=${folderPaths.modelName}`}
+                  ws-connect={`/ws?runId=${runId}&folder=${folderPaths.modelName}`}
                 >
-                  <div id="image-container" className="grid grid-cols-3"></div>
+                  <div id={`image-container-${runId}`} className="grid grid-cols-3"></div>
                 </div>
               </div>
             </div>
@@ -467,6 +454,17 @@ Bun.serve<WebSocketData>({
     }
 
     if (url.pathname === "/stop") {
+      let runId = params.get("runId")
+      // <span id={`${runId}-status`} className="text-sm">Running...</span>
+
+      globalThis.allClients[runId!].ws.send(
+        CompToString(
+          <span id={`status-${runId}`} className="text-sm text-red-700" hx-swap-oob="true" > Stopped</span >
+        )
+      )
+
+      globalThis.allClients[runId!].ws.close(1000)
+
       if (globalThis.loraProc && !globalThis.loraProc.killed) {
         // loraProc.kill('SIGINT');
         // process.kill(loraProc.pid! + 1, 'SIGINT')
