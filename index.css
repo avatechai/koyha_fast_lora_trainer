@@ -2,10 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
-.shiki > code > span{
-    text-wrap: wrap;
+.shiki>code>span {
+  text-wrap: wrap;
 }
 
-.shiki{
+.shiki {
   @apply rounded-lg p-2
 }
+
+/* .collapse>.collapse-content {
+  @apply opacity-0 -translate-y-6 transition-all visible h-fit min-h-fit
+}
+
+.collapse[open]>.collapse-content {
+  @apply opacity-100 translate-y-0 min-h-fit h-fit
+} */

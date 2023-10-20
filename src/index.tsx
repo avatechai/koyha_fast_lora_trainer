@@ -96,104 +96,114 @@ function Component(props: { message: string }) {
         <script src="https://unpkg.com/htmx.org/dist/ext/ws.js"></script>
       </head>
       <body>
-        <div className="container mx-auto flex flex-col items-center">
-          <h1 className="text-xl mt-10">Fast Lora Trainer</h1>
-          {/* <form > */}
-          <form
-            id="form"
-            hx-encoding="multipart/form-data"
-            hx-post="/action"
-            // hx-swap="afterend"
-            hx-target="#log-container"
-            className="flex flex-col"
-            // @ts-ignore
-            _="on htmx:xhr:progress(loaded, total) 
-              set #progress.value to (loaded/total)*100
+        <div className="absolute inset-0 -z-10 h-full w-full bg-white bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]"></div>
+        <div className="flex h-[100dvh]">
+          <div className="flex flex-col items-center px-2 w-[310px] min-w-[310px]">
+            <h1 className="text-xl mt-4">Fast Lora Trainer</h1>
+            {/* <form > */}
+            <form
+              id="form"
+              hx-encoding="multipart/form-data"
+              hx-post="/action"
+              hx-swap="innerHTML"
+              hx-target="#upload-button"
+              className="flex flex-col"
+              // hx-trigger="click target:#upload-button"
+              hx-disinherit="hx-target"
+              // @ts-ignore
+              _="on htmx:xhr:progress(loaded, total) 
+              if (loaded/total)*100 != Infinity
+                set #progress.value to (loaded/total)*100
+              console.log((loaded/total)*100)
             "
-          >
-            <select
-              className="select w-full max-w-xs"
-              name="base_model"
-              placeholder="base_model"
-              defaultValue="chilloutmix-Ni-pruned-fp32.safetensors"
             >
-              {/* <option disabled>
+              <select
+                className="select w-full max-w-xs"
+                name="base_model"
+                placeholder="base_model"
+                defaultValue="chilloutmix-Ni-pruned-fp32.safetensors"
+              >
+                {/* <option disabled>
                 Pick your favorite Simpson
               </option> */}
-              {folderPath.map((x) => (
-                <option key={x}>{x}</option>
-              ))}
-            </select>
-            {/* <input
+                {folderPath.map((x) => (
+                  <option key={x}>{x}</option>
+                ))}
+              </select>
+              {/* <input
               type="text"
               className="input input-bordered w-full max-w-xs"
               name="base_model"
               placeholder="base_model"
             /> */}
-            <input
-              type="text"
-              className="input input-bordered w-full max-w-xs"
-              name="name"
-              placeholder="Name"
-              defaultValue="benny"
-            />
-            <input
-              type="text"
-              className="input input-bordered w-full max-w-xs"
-              name="sample_prompt"
-              placeholder="sample_prompt"
-              defaultValue="masterpiece, best quality, 1girl, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy, bad composition, poor, low effort --w 512 --h 512 --d 1 --l 8 --s 30"
-            />
-            <input
-              type="text"
-              className="input input-bordered w-full max-w-xs"
-              name="instance_name"
-              placeholder="instance_name"
-              defaultValue="benny123"
-            />
-            <input
-              type="text"
-              className="input input-bordered w-full max-w-xs"
-              name="class_name"
-              placeholder="class_name"
-              defaultValue="man"
-            />
-            <input
-              type="number"
-              className="input input-bordered w-full max-w-xs"
-              name="repeat_step"
-              placeholder="40"
-              defaultValue="40"
-            />
-            <input
-              type="file"
-              className="file-input w-full max-w-xs"
-              id="files"
-              name="files"
-              multiple
-            />
-            <input type="submit" className="btn" value="Submit" />
-            <progress
-              id="progress"
-              className="w-full progress"
-              value="0"
-              max="100"
-            ></progress>
-          </form>
-
-          <div id="log-container"></div>
-
-          <StartButton />
+              <input
+                type="text"
+                className="input input-bordered w-full max-w-xs"
+                name="name"
+                placeholder="Name"
+                defaultValue="benny"
+              />
+              <input
+                type="text"
+                className="input input-bordered w-full max-w-xs"
+                name="sample_prompt"
+                placeholder="sample_prompt"
+                defaultValue="masterpiece, best quality, 1girl, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy, bad composition, poor, low effort --w 512 --h 512 --d 1 --l 8 --s 30"
+              />
+              <input
+                type="text"
+                className="input input-bordered w-full max-w-xs"
+                name="instance_name"
+                placeholder="instance_name"
+                defaultValue="benny123"
+              />
+              <input
+                type="text"
+                className="input input-bordered w-full max-w-xs"
+                name="class_name"
+                placeholder="class_name"
+                defaultValue="man"
+              />
+              <input
+                type="number"
+                className="input input-bordered w-full max-w-xs"
+                name="repeat_step"
+                placeholder="40"
+                defaultValue="40"
+              />
+              <input
+                type="file"
+                className="file-input w-full max-w-xs"
+                id="files"
+                name="files"
+                multiple
+              />
+              <div className="w-full flex">
+                <button id="upload-button" type="submit" className="btn grow" >Submit</button>
+                <StartButton />
+              </div>
+              <progress
+                id="progress"
+                className="w-full progress"
+                value="0"
+                max="100"
+              ></progress>
+            </form>
+          </div>
+          <div className="overflow-y-auto w-full">
+            <div id="run-container" className="flex flex-col-reverse grow justify-end h-fit " />
+          </div>
         </div>
       </body>
-    </html>
+    </html >
   );
 }
 
 function StartButton({ text = "Start" }: { text?: React.ReactNode }) {
   return (
     <button
-      id="start-btn"
+      type="button"
+      // id="start-btn"
       className="btn"
       hx-post="./start"
       hx-swap="outerHTML"
@@ -275,7 +285,7 @@ Bun.serve<WebSocketData>({
 
         if (extname(filepath) === ".jpg" || extname(filepath) === ".jpeg" || extname(filepath) === ".png") {
           // // delay to wait for file to be written
-          // await new Promise((resolve) => setTimeout(resolve, 1000));
+          await new Promise((resolve) => setTimeout(resolve, 1000));
 
           ws.send(`
             <div id="image-container-${ws.data.runId}" hx-swap-oob="beforeend" >
@@ -384,7 +394,7 @@ Bun.serve<WebSocketData>({
       });
       await Promise.allSettled(filesOps);
 
-      return Comp(<div>Success</div>);
+      return Comp(<div>Submit <div className="text-green-600 text-sm normal-case">Success</div></div>);
     }
 
     if (url.pathname.startsWith("/image")) {
@@ -410,31 +420,34 @@ Bun.serve<WebSocketData>({
         return Comp(
           <>
             <button
-              id="stop-btn"
+              // id="stop-btn"
               className="btn"
               hx-post={"./stop?runId=" + runId}
+              // hx-swap-oob="false"
               hx-swap="outerHTML"
             >
               Stop
             </button>
 
-            <div className="collapse border border-base-300 ">
-              <input type="checkbox" />
-              <div className="collapse-title text-xl font-medium flex justify-between items-center">
-                <span>Run #{globalThis.runCount} <span className="text-sm text-gray-500">{runId}</span></span>
-                <span id={`status-${runId}`} className="text-sm">Running...</span>
-              </div>
-              <div className="collapse-content">
-                <div>
-                  <p dangerouslySetInnerHTML={{
-                    __html: code
-                  }}></p>
+            <div id="run-container" hx-swap-oob="beforeend">
+              <div className=" border border-base-300 visible"  >
+                <input type="checkbox" className="w-full h-20 appearance-none absolute cursor-pointer" hx-on:click="['!flex', '!opacity-100'].map(v=> this.nextElementSibling.nextElementSibling.classList.toggle(v) ) "/>
+                <div className="collapse-title text-xl font-medium !flex !opacity-100 justify-between pointer-events-none">
+                  <span>Run #{globalThis.runCount} <span className="text-sm text-gray-500">{runId}</span></span>
+                  <span id={`status-${runId}`} className="text-sm">Running...</span>
                 </div>
-                <div
-                  hx-ext="ws"
-                  ws-connect={`/ws?runId=${runId}&folder=${folderPaths.modelName}`}
-                >
-                  <div id={`image-container-${runId}`} className="grid grid-cols-3"></div>
+                <div className="hidden !min-h-fit flex-col items-start opacity-0 transition-all">
+                  <div>
+                    <p dangerouslySetInnerHTML={{
+                      __html: code
+                    }}></p>
+                  </div>
+                  <div
+                    hx-ext="ws"
+                    ws-connect={`/ws?runId=${runId}&folder=${folderPaths.modelName}`}
+                  >
+                    <div id={`image-container-${runId}`} className="grid grid-cols-3"></div>
+                  </div>
                 </div>
               </div>
             </div>
