@@ -218,6 +218,8 @@ function startLoraTraining(folderPaths: FolderPaths) {
   const command = `source \"./../venv/bin/activate\" && accelerate launch --num_cpu_threads_per_process=2 "${scripPath}" --enable_bucket --min_bucket_reso=256 --max_bucket_reso=2048 --pretrained_model_name_or_path="${modelPath}" --train_data_dir="${dataDir}" --resolution="512,512" --output_dir="${outputDir}" --logging_dir="${loggingDir}" --save_model_as=safetensors --output_name="${modelName}" --lr_scheduler_num_cycles="1" --max_data_loader_n_workers="0" --learning_rate="0.0001" --lr_scheduler="cosine" --lr_warmup_steps="595" --train_batch_size="2" --max_train_steps="5950" --save_every_n_epochs="1" --mixed_precision="fp16" --save_precision="fp16" --seed="7" --caption_extension=".txt" --cache_latents --optimizer_type="AdamW8bit" --max_data_loader_n_workers="0" --clip_skip=2 --bucket_reso_steps=64 --flip_aug --xformers --bucket_no_upscale --noise_offset=0.0 --sample_sampler=euler_a --sample_prompts="${samplePromptPath}" --sample_every_n_steps="128"`;
 
   console.log(command);
+  globalThis.runCount++;
+
   if (debug)
     return command
   // return;
@@ -233,7 +235,6 @@ function startLoraTraining(folderPaths: FolderPaths) {
     detached: true,
   });
 
-  runCount++;
 
   return command;
   // loraProc.on("close", () => {
@@ -428,7 +429,7 @@ Bun.serve<WebSocketData>({
             <div className="collapse bg-base-200 border border-base-300 collapse-arrow">
               <input type="checkbox" />
               <div className="collapse-title text-xl font-medium">
-                Run #{runCount}
+                Run #{globalThis.runCount}
               </div>
               <div className="collapse-content">
                 <div>
@@ -463,10 +464,10 @@ Bun.serve<WebSocketData>({
     }
 
     if (url.pathname === "/stop") {
-      if (loraProc && !loraProc.killed) {
+      if (globalThis.loraProc && !globalThis.loraProc.killed) {
         // loraProc.kill('SIGINT');
         // process.kill(loraProc.pid! + 1, 'SIGINT')
-        spawn("sh", ["-c", "kill -INT -" + loraProc.pid]);
+        spawn("sh", ["-c", "kill -INT -" + globalThis.loraProc.pid]);
         loraProc = undefined;
         // await loraProc.;
         return Comp(<StartButton />);
