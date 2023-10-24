@@ -62,6 +62,7 @@ declare global {
   var runCount: number;
   var loraProc: ChildProcess | undefined; //Subprocess;
   var folderPaths: FolderPaths | undefined;
+  var advanceParams: FormData | undefined;
 
   var allClients: Record<
     string,
@@ -133,10 +134,13 @@ function Component({sessionId}: { sessionId: string }) {
         <div className="absolute inset-0 -z-10 h-full w-full bg-white bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]"></div>
         <div className="flex h-[100dvh]">
           <div className="flex flex-col items-center px-2 w-[310px] min-w-[310px]">
-            <h1 
-            hx-ext="ws"
-                  ws-connect={`/ws?sessionId=${sessionId}`}
-            className="text-xl my-4">Fast Lora Trainer</h1>
+            <h1
+              hx-ext="ws"
+              ws-connect={`/ws?sessionId=${sessionId}`}
+              className="text-xl my-4"
+            >
+              Fast Lora Trainer
+            </h1>
             {/* <form > */}
             <form
               id="form"
@@ -144,7 +148,7 @@ function Component({sessionId}: { sessionId: string }) {
               hx-post="/upload"
               hx-swap="innerHTML"
               hx-target="#upload-button"
-              className="flex flex-col gap-1"
+              className="flex flex-col gap-1 overflow-y-scroll"
               // hx-trigger="click target:#upload-button"
               hx-disinherit="hx-target"
               // @ts-ignore
@@ -212,40 +216,84 @@ function Component({sessionId}: { sessionId: string }) {
                 multiple
               />
 
-              {
-                allPlugins.map(x => x.getFormUI?.())
-              }
+              <div className="collapse bg-base-200 h-fit">
+                <input type="checkbox" />
+                <div className="collapse-title ">
+                  <span className="label-text">Advance Params</span>
+                </div>
+                <div className="collapse-content overflow-y-auto">
+                  {params.map((param, index) => (
+                    <div key={index}>
+                      {param.type === "boolean" ? (
+                        <div className="form-control">
+                          <label className="label cursor-pointer">
+                            <span className="label-text">{param.name}</span>
+                            <input
+                              type="checkbox"
+                              name={param.name}
+                              className="toggle"
+                              defaultChecked={param.default as boolean}
+                            />
+                          </label>
+                        </div>
+                      ) : (
+                        <>
+                          <label className="label-text">{param.name}</label>
+                          <input
+                            type={param.type}
+                            name={param.name}
+                            className="input input-sm input-bordered w-full max-w-xs"
+                            defaultValue={String(param.default)}
+                          />
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-            <TextAreaOptions title='Sampling' name='sample_prompt' options={[
-              {
-                name: "Man",
-                value: "masterpiece, best quality, 1man, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy, bad composition, poor, low effort --w 512 --h 512 --d 1 --l 8 --s 30"
-              },
-              {
-                name: "Girl",
-                value: "masterpiece, best quality, 1girl, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy, bad composition, poor, low effort --w 512 --h 512 --d 1 --l 8 --s 30"
-              }
-            ]}/>
+              {allPlugins.map((x) => x.getFormUI?.())}
 
+              <TextAreaOptions
+                title="Sampling"
+                name="sample_prompt"
+                options={[
+                  {
+                    name: "Man",
+                    value:
+                      "masterpiece, best quality, 1man, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy, bad composition, poor, low effort --w 512 --h 512 --d 1 --l 8 --s 30",
+                  },
+                  {
+                    name: "Girl",
+                    value:
+                      "masterpiece, best quality, 1girl, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy, bad composition, poor, low effort --w 512 --h 512 --d 1 --l 8 --s 30",
+                  },
+                ]}
+              />
             </form>
 
+            {/* <div className='w-full absolute bottom-0'> */}
             <div className="w-full flex">
-                <button id="upload-button" type="submit" className="btn grow" _="on click send 'submit' to #form">
-                  Upload
-                </button>
-                <StartButton />
-              </div>
-              <progress
-                id="progress"
-                className="w-full progress"
-                value="0"
-                max="100"
-              ></progress>
-                   {
-                allPlugins.map(x => x.getExtraUI?.())
-              }
-          </div>
+              <button
+                id="upload-button"
+                type="submit"
+                className="btn grow"
+                _="on click send 'submit' to #form"
+              >
+                Upload
+              </button>
+              <StartButton />
+            </div>
+            <progress
+              id="progress"
+              className="w-full progress"
+              value="0"
+              max="100"
+            ></progress>
+            {/* </div> */}
 
+            {allPlugins.map((x) => x.getExtraUI?.())}
+          </div>
 
           <div className="overflow-y-auto w-full">
             <div
@@ -329,6 +377,174 @@ export type FolderPaths = {
   log: string;
 };
 
+type Params = {
+  name: string;
+  options?: string[]
+  type: 'number' | 'text' | 'boolean'
+  default: string | boolean | number
+}
+
+const params: Params[] = [
+  // {
+  //   name: 'num_cpu_threads_per_process',
+  //   type: 'number',
+  //   default: 2
+  // },
+  {
+    name: 'CUDA_VISIBLE_DEVICES',
+    type: 'number',
+    default: 0,
+  },
+  {
+    name: 'resolution',
+    type: 'text',
+    default: "512,512"
+  },
+  {
+    name: 'enable_bucket',
+    type: 'boolean',
+    default: true
+  },
+  {
+    name: 'min_bucket_reso',
+    type: 'number',
+    default: 256
+  },
+  {
+    name: 'max_bucket_reso',
+    type: 'number',
+    default: 2048
+  },
+  {
+    name: 'lr_scheduler_num_cycles',
+    type: 'text',
+    default: "1"
+  },
+  {
+    name: 'max_data_loader_n_workers',
+    type: 'number',
+    default: 0
+  },
+  {
+    name: 'learning_rate',
+    type: 'number',
+    default: 0.0001
+  },
+  {
+    name: 'lr_scheduler',
+    type: 'text',
+    default: "cosine"
+  },
+  {
+    name: 'lr_warmup_steps',
+    type: 'number',
+    default: 595
+  },
+  {
+    name: 'train_batch_size',
+    type: 'number',
+    default: 2
+  },
+  {
+    name: 'max_train_steps',
+    type: 'number',
+    default: 5950
+  },
+  {
+    name: 'save_every_n_epochs',
+    type: 'number',
+    default: 1
+  },
+  {
+    name: 'mixed_precision',
+    type: 'text',
+    default: "fp16"
+  },
+  {
+    name: 'save_precision',
+    type: 'text',
+    default: "fp16"
+  },
+  {
+    name: 'seed',
+    type: 'number',
+    default: 7
+  },
+  {
+    name: 'clip_skip',
+    type: 'number',
+    default: 2
+  },
+  {
+    name: 'optimizer_type',
+    type: 'text',
+    default: "AdamW"
+  },
+  {
+    name: 'bucket_reso_steps',
+    type: 'number',
+    default: 64
+  },
+  {
+    name: 'flip_aug',
+    type: 'boolean',
+    default: true
+  },
+  {
+    name: 'xformers',
+    type: 'boolean',
+    default: true
+  },
+  {
+    name: 'bucket_no_upscale',
+    type: 'boolean',
+    default: true
+  },
+  {
+    name: 'cache_latents',
+    type: 'boolean',
+    default: true
+  },
+  {
+    name: 'noise_offset',
+    type: 'number',
+    default: 0.0
+  },
+  {
+    name: 'sample_sampler',
+    type: 'text',
+    default: "euler_a"
+  },
+  {
+    name: 'sample_every_n_steps',
+    type: 'number',
+    default: 128
+  }
+];
+
+function getCommandsParams() {
+  const formdata = globalThis.advanceParams;
+
+  if (!formdata) return "";
+
+  let commandParams = "";
+
+  for (const param of params) {
+    const value = formdata.get(param.name);
+    if (param.name == "CUDA_VISIBLE_DEVICES") continue;
+    if (param.type == 'boolean') {
+      if (value == null) continue;
+      else if (value == 'on') {
+        commandParams += `--${param.name} `;
+      }
+    } else if (value !== null) {
+      commandParams += `--${param.name}=${value} `;
+    }
+  }
+
+  return commandParams.trim(); // remove trailing space
+}
+
 function startLoraTraining(folderPaths: FolderPaths) {
   const modelPath = modelFolders + folderPaths.base_model;
   const dataDir = join(dirname(__dirname), folderPaths.img_root); //"/home/avatech/Desktop/projects/kohya_ss/dataset/img";
@@ -337,7 +553,8 @@ function startLoraTraining(folderPaths: FolderPaths) {
   const modelName = folderPaths.modelName;
   const samplePromptPath = join(dirname(__dirname), folderPaths.sample_prompt); //"/home/avatech/Desktop/projects/kohya_ss/dataset/model/sample/prompt.txt";
   const scripPath = './../train_db.py';
-  const command = `source \"./../venv/bin/activate\" && CUDA_VISIBLE_DEVICES=1 accelerate launch --num_cpu_threads_per_process=2 "${scripPath}" --enable_bucket --min_bucket_reso=256 --max_bucket_reso=2048 --pretrained_model_name_or_path="${modelPath}" --train_data_dir="${dataDir}" --resolution="512,512" --output_dir="${outputDir}" --logging_dir="${loggingDir}" --save_model_as=safetensors --output_name="${modelName}" --lr_scheduler_num_cycles="1" --max_data_loader_n_workers="0" --learning_rate="0.0001" --lr_scheduler="cosine" --lr_warmup_steps="595" --train_batch_size="2" --max_train_steps="5950" --save_every_n_epochs="1" --mixed_precision="fp16" --save_precision="fp16" --seed="7" --caption_extension=".txt" --cache_latents --optimizer_type="AdamW" --max_data_loader_n_workers="0" --clip_skip=2 --bucket_reso_steps=64 --flip_aug --xformers --bucket_no_upscale --noise_offset=0.0 --sample_sampler=euler_a --sample_prompts="${samplePromptPath}" --sample_every_n_steps="128"`;
+  // const command = `source \"./../venv/bin/activate\" && CUDA_VISIBLE_DEVICES=1 accelerate launch --num_cpu_threads_per_process=2 "${scripPath}" --enable_bucket --min_bucket_reso=256 --max_bucket_reso=2048 --pretrained_model_name_or_path="${modelPath}" --train_data_dir="${dataDir}" --resolution="512,512" --output_dir="${outputDir}" --logging_dir="${loggingDir}" --save_model_as=safetensors --output_name="${modelName}" --lr_scheduler_num_cycles="1" --max_data_loader_n_workers="0" --learning_rate="0.0001" --lr_scheduler="cosine" --lr_warmup_steps="595" --train_batch_size="2" --max_train_steps="5950" --save_every_n_epochs="1" --mixed_precision="fp16" --save_precision="fp16" --seed="7" --caption_extension=".txt" --cache_latents --optimizer_type="AdamW" --max_data_loader_n_workers="0" --clip_skip=2 --bucket_reso_steps=64 --flip_aug --xformers --bucket_no_upscale --noise_offset=0.0 --sample_sampler=euler_a --sample_prompts="${samplePromptPath}" --sample_every_n_steps="128"`;
+  const command = `source \"./../venv/bin/activate\" && CUDA_VISIBLE_DEVICES=${globalThis.advanceParams?.get('CUDA_VISIBLE_DEVICES')} accelerate launch --num_cpu_threads_per_process=2 "${scripPath}" --pretrained_model_name_or_path="${modelPath}" --train_data_dir="${dataDir}" --output_dir="${outputDir}" --logging_dir="${loggingDir}" --save_model_as=safetensors --output_name="${modelName}" --caption_extension=".txt" --sample_prompts="${samplePromptPath}" ${getCommandsParams()}` ;
 
   console.log(command);
   globalThis.runCount++;
@@ -420,7 +637,7 @@ Bun.serve<WebSocketData>({
       });
 
       watcher.on('add', async (filepath) => {
-        console.log('add ', filepath, extname(filepath));
+        // console.log('add ', filepath, extname(filepath));
 
         if (
           extname(filepath) === '.jpg' ||
@@ -515,6 +732,8 @@ Bun.serve<WebSocketData>({
         formdata.get('repeat_step') as string,
       );
 
+      globalThis.advanceParams = formdata;
+
       const folderName = `${repeat_step}_${instance_name} ${class_name}`;
 
       let temp = {
@@ -561,7 +780,7 @@ Bun.serve<WebSocketData>({
         globalThis.allClients[sessionId].ws.send(
           CompToString(
             <div id='upload-button' className='btn' hx-swap-oob="innerHTML">
-            <div className="text-orange-400 text-sm normal-case">Pre Processing...</div>
+              <div className="text-orange-400 text-sm normal-case">Pre Processing...</div>
             </div>,
           ),
         );
@@ -703,7 +922,7 @@ Bun.serve<WebSocketData>({
         return Comp(
           <StartButton
             text={
-              <div id='upload-button'>
+              <div>
                 Start
                 <div className="text-red-700 normal-case text-sm">
                   Upload First
