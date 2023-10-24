@@ -124,6 +124,7 @@ function Component({sessionId}: { sessionId: string }) {
         <script src="https://unpkg.com/htmx.org@1.9.6"></script>
         <script src="https://unpkg.com/hyperscript.org@0.9.11"></script>
         <script src="https://unpkg.com/htmx.org/dist/ext/ws.js"></script>
+        <script src="https://unpkg.com/htmx.org/dist/ext/debug.js"></script>
       </head>
       <body>
         <div className="absolute inset-0 -z-10 h-full w-full bg-white bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]"></div>
@@ -223,9 +224,11 @@ function Component({sessionId}: { sessionId: string }) {
                   defaultValue="masterpiece, best quality, 1girl, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy, bad composition, poor, low effort --w 512 --h 512 --d 1 --l 8 --s 30"
                 />
               </div>
+            </form>
 
-              <div className="w-full flex">
-                <button id="upload-button" type="submit" className="btn grow">
+
+            <div className="w-full flex">
+                <button id="upload-button" type="submit" className="btn grow" _="on click send 'submit' to #form">
                   Upload
                 </button>
                 <StartButton />
@@ -236,8 +239,9 @@ function Component({sessionId}: { sessionId: string }) {
                 value="0"
                 max="100"
               ></progress>
-            </form>
           </div>
+
+
           <div className="overflow-y-auto w-full">
             <div
               id="run-container"
@@ -253,11 +257,13 @@ function Component({sessionId}: { sessionId: string }) {
 function StartButton({ text = 'Start' }: { text?: React.ReactNode }) {
   return (
     <button
+      // hx-ext="debug"
       type="button"
       // id="start-btn"
       className="btn btn-accent"
       hx-post="./start"
       hx-swap="outerHTML"
+      hx-params="none"
     >
       {text}
     </button>
