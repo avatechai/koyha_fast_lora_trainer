@@ -25,6 +25,7 @@ const shiki = await getHighlighter({
 
 export interface Plugin {
   getName: () => string;
+  handleRequest?(req: Request): Promise<Response> | Response | undefined;
   getFormUI?(): React.ReactNode;
   onFilesUploaded?(props: {
     folderPaths: FolderPaths
@@ -690,6 +691,14 @@ Bun.serve<WebSocketData>({
         return Comp(<StartButton />);
       }
       return Comp(<StartButton />);
+    }
+
+    for (const key in allPlugins) {
+      const plugin = allPlugins[key]
+      if (plugin.handleRequest) {
+        const response = await plugin.handleRequest?.(req);
+        if (response) return response;
+      }
     }
 
     return new Response('Not Found', { status: 404 });
