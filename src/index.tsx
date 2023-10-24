@@ -14,7 +14,7 @@ import { exists, readFileSync } from 'fs';
 import { argv } from 'process';
 
 import { getHighlighter } from 'shikiji';
-import { startCaptioning } from './captioning';
+import AutoCaptioningPlugin from './plugins/captioning';
 import { render } from 'react-dom';
 import React, { ReactElement } from 'react';
 
@@ -22,6 +22,31 @@ const shiki = await getHighlighter({
   themes: ['nord'],
   langs: ['bash'],
 });
+
+export interface Plugin {
+  getName: () => string;
+  getFormUI?(): React.ReactNode;
+  onFilesUploaded?(props: {
+    folderPaths: FolderPaths
+  }): Promise<void>;
+  onRun?(props: {
+      folderPaths: FolderPaths
+  }): Promise<void>;
+}
+
+import fs from 'fs';
+import path from 'path';
+
+const pluginsDir = path.join(import.meta.dir, 'plugins');
+let pluginFiles = fs.readdirSync(pluginsDir);
+
+pluginFiles = pluginFiles.filter(file => {
+  const ext = path.extname(file);
+  return ext === '.ts' || ext === '.tsx';
+});
+
+const allPlugins = (await Promise.all(pluginFiles.map(x => import('./plugins/' + x)))).map(x => (x.default as () => Plugin)());
+console.log("Plugins Loaded: ", allPlugins.map(x => x.getName()));
 
 export let debug = (argv.length >= 3 && argv[2] == '--debug') ?? false;
 
@@ -108,7 +133,7 @@ function Component(props: { message: string }) {
             <form
               id="form"
               hx-encoding="multipart/form-data"
-              hx-post="/action"
+              hx-post="/upload"
               hx-swap="innerHTML"
               hx-target="#upload-button"
               className="flex flex-col gap-1"
@@ -178,6 +203,10 @@ function Component(props: { message: string }) {
                 name="files"
                 multiple
               />
+
+              {
+                allPlugins.map(x => x.getFormUI?.())
+              }
 
               <div className="form-control w-full max-w-xs">
                 <label className="label">
@@ -394,8 +423,8 @@ Bun.serve<WebSocketData>({
       });
     }
 
-    // parse formdata at /action
-    if (url.pathname === '/action') {
+    // parse formdata at /upload
+    if (url.pathname === '/upload') {
       const formdata = await req.formData();
       const name = formdata.get('name') as string;
       const base_model = formdata.get('base_model') as string;
@@ -443,7 +472,12 @@ Bun.serve<WebSocketData>({
         filesOps.push(Bun.write(filePath, x));
       });
       await Promise.allSettled(filesOps);
-      await startCaptioning(globalThis.folderPaths);
+      const allPluginPreprocesses = allPlugins.map(x => x.onFilesUploaded?.(
+        {
+          folderPaths: globalThis.folderPaths!
+        }
+      ))
+      await Promise.allSettled(allPluginPreprocesses);
 
       return Comp(
         <div>
@@ -465,6 +499,11 @@ Bun.serve<WebSocketData>({
     }
 
     if (url.pathname === '/start') {
+      const allPluginPreprocesses = allPlugins.map(x => x.onRun?.({
+          folderPaths: globalThis.folderPaths!
+      }))
+      await Promise.allSettled(allPluginPreprocesses);
+
       const folderPaths = globalThis.folderPaths;
       if (folderPaths) {
         const command = startLoraTraining(folderPaths);

@@ -1,9 +1,32 @@
-import { FolderPaths, debug } from ".";
+import { FolderPaths, debug } from "..";
 import { dirname, join } from "path";
 import { spawn } from "child_process";
+import { Plugin } from '../index'
 
-export function startCaptioning(folderPaths: FolderPaths) {
-  return new Promise((resolve, reject) => {
+export default function AutoCaptioningPlugin(): Plugin {
+  return {
+    getName() {
+      return "Auto Captioning";
+    },
+    getFormUI() {
+      return <>
+        <div className="form-control">
+          <label className="label cursor-pointer">
+            <span className="label-text">Enable Auto Captioning</span>
+            <input type="checkbox" name="enable-auto-captioning" className="toggle" checked />
+          </label>
+        </div>
+      </>
+    },
+    onFilesUploaded({ folderPaths }) {
+      return startCaptioning(folderPaths)
+    },
+  } satisfies Plugin
+}
+
+
+function startCaptioning(folderPaths: FolderPaths) {
+  return new Promise<void>((resolve, reject) => {
     const modelUrl =
       "https://storage.googleapis.com/sfr-vision-language-research/BLIP/models/model_large_caption.pth";
     const dataDir = join(dirname(__dirname), folderPaths.img);
