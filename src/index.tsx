@@ -1,6 +1,7 @@
 import { ServerWebSocket, Subprocess } from 'bun';
 import { renderToReadableStream, renderToString } from 'react-dom/server';
 import { mkdir, readdir } from 'fs/promises';
+import { VscChevronDown } from 'react-icons/vsc'
 import {
   ChildProcess,
   ChildProcessWithoutNullStreams,
@@ -215,19 +216,18 @@ function Component({sessionId}: { sessionId: string }) {
                 allPlugins.map(x => x.getFormUI?.())
               }
 
-              <div className="form-control w-full max-w-xs">
-                <label className="label">
-                  <span className="label-text text-xs">Sampling</span>
-                </label>
-                <textarea
-                  className="textarea textarea-bordered textarea-sm w-full max-w-xs leading-tight h-20"
-                  name="sample_prompt"
-                  placeholder="sample_prompt"
-                  defaultValue="masterpiece, best quality, 1girl, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy, bad composition, poor, low effort --w 512 --h 512 --d 1 --l 8 --s 30"
-                />
-              </div>
-            </form>
+            <TextAreaOptions title='Sampling' name='sample_prompt' options={[
+              {
+                name: "Man",
+                value: "masterpiece, best quality, 1man, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy, bad composition, poor, low effort --w 512 --h 512 --d 1 --l 8 --s 30"
+              },
+              {
+                name: "Girl",
+                value: "masterpiece, best quality, 1girl, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy, bad composition, poor, low effort --w 512 --h 512 --d 1 --l 8 --s 30"
+              }
+            ]}/>
 
+            </form>
 
             <div className="w-full flex">
                 <button id="upload-button" type="submit" className="btn grow" _="on click send 'submit' to #form">
@@ -256,6 +256,50 @@ function Component({sessionId}: { sessionId: string }) {
         </div>
       </body>
     </html>
+  );
+}
+
+function TextAreaOptions(props: { options: {
+  name: string,
+  value: string,
+}[]; name: string, title: string }) {
+  return (
+    <div className="form-control w-full max-w-xs">
+      <label className="label">
+        <span className="label-text text-xs">{props.title}</span>
+        <span className="label-text-alt">
+          <div className="dropdown dropdown-end">
+            <label
+              tabIndex={0}
+              className="m-1 cursor-pointer hover:ring-1 rounded-xl px-1 ring-gray-400 flex items-center gap-2"
+            >
+              Preset <VscChevronDown />
+            </label>
+            <ul
+              tabIndex={0}
+              className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-fit"
+            >
+              {
+                props.options.map(x => <li>
+                  <a _={`on click set #sample_prompt.value to '${x.value}' call document.activeElement.blur()`}>
+                    {x.name}
+                  </a>
+                </li>)
+              }
+            </ul>
+          </div>
+        </span>
+      </label>
+      <textarea
+        id={props.name}
+        className="textarea textarea-bordered textarea-sm w-full max-w-xs leading-tight h-20"
+        name={props.name}
+        placeholder={props.name}
+        defaultValue={
+          props.options[0].value
+        }
+      />
+    </div>
   );
 }
 
