@@ -27,6 +27,7 @@ export interface Plugin {
   getName: () => string;
   handleRequest?(req: Request): Promise<Response> | Response | undefined;
   getFormUI?(): React.ReactNode;
+  getExtraUI?(): React.ReactNode;
   onFilesUploaded?(props: {
     folderPaths: FolderPaths
     formdata: FormData
@@ -240,6 +241,9 @@ function Component({sessionId}: { sessionId: string }) {
                 value="0"
                 max="100"
               ></progress>
+                   {
+                allPlugins.map(x => x.getExtraUI?.())
+              }
           </div>
 
 
@@ -402,6 +406,10 @@ Bun.serve<WebSocketData>({
         await globalThis.allClients[ws.data.runId].watcher?.close();
         console.log('Removing', globalThis.allClients[ws.data.runId].runId);
         delete globalThis.allClients[ws.data.runId];
+      }
+      if (ws.data.sessionId) {
+        console.log('Removing', ws.data.sessionId);
+        delete globalThis.allClients[ws.data.sessionId];
       }
     },
     message(ws, message) {},
