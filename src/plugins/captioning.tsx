@@ -13,12 +13,14 @@ export default function AutoCaptioningPlugin(): Plugin {
         <div className="form-control">
           <label className="label cursor-pointer">
             <span className="label-text">Enable Auto Captioning</span>
-            <input type="checkbox" name="enable-auto-captioning" className="toggle" checked />
+            <input type="checkbox" name="enable-auto-captioning" className="toggle" defaultChecked />
           </label>
         </div>
       </>
     },
-    onFilesUploaded({ folderPaths }) {
+    onFilesUploaded({ folderPaths, formdata }) {
+      if (formdata.get('enable-auto-captioning') !== 'on') return
+      
       return startCaptioning(folderPaths)
     },
   } satisfies Plugin
@@ -37,7 +39,7 @@ function startCaptioning(folderPaths: FolderPaths) {
     console.log(command);
 
     if (debug) {
-      resolve(null);
+      resolve();
       return
     }
 

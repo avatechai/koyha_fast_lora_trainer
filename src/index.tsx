@@ -28,10 +28,11 @@ export interface Plugin {
   getFormUI?(): React.ReactNode;
   onFilesUploaded?(props: {
     folderPaths: FolderPaths
-  }): Promise<void>;
+    formdata: FormData
+  }): Promise<void> | void;
   onRun?(props: {
       folderPaths: FolderPaths
-  }): Promise<void>;
+  }): Promise<void> | void;
 }
 
 import fs from 'fs';
@@ -64,8 +65,8 @@ declare global {
     {
       ws: ServerWebSocket<WebSocketData>;
       // folderName: string;
-      runId: string;
-      watcher: chokidar.FSWatcher;
+      runId?: string;
+      watcher?: chokidar.FSWatcher;
     }
   >;
 }
@@ -113,7 +114,7 @@ let folderPath = debug
   : (await readdir(modelFolders)).filter((x) => x.endsWith('safetensors'));
 // let folderPath = ["chilloutmix-Ni-pruned-fp32.safetensors"]
 
-function Component(props: { message: string }) {
+function Component({sessionId}: { sessionId: string }) {
   return (
     <html>
       <head>
@@ -128,7 +129,10 @@ function Component(props: { message: string }) {
         <div className="absolute inset-0 -z-10 h-full w-full bg-white bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]"></div>
         <div className="flex h-[100dvh]">
           <div className="flex flex-col items-center px-2 w-[310px] min-w-[310px]">
-            <h1 className="text-xl my-4">Fast Lora Trainer</h1>
+            <h1 
+            hx-ext="ws"
+                  ws-connect={`/ws?sessionId=${sessionId}`}
+            className="text-xl my-4">Fast Lora Trainer</h1>
             {/* <form > */}
             <form
               id="form"
@@ -305,11 +309,9 @@ function CompToString(children: ReactElement) {
   return renderToString(children);
 }
 
-type WebSocketData = {
-  // id: string;
-  folderName: string;
-  runId: string;
-};
+type WebSocketData = 
+  | { sessionId: string; folderName?: never; runId?: never }
+  | { sessionId?: never; folderName: string; runId: string };
 
 function Collapse(
   props: React.ComponentProps<'div'> & {
@@ -347,6 +349,13 @@ Bun.serve<WebSocketData>({
     async open(ws) {
       console.log(ws.data);
 
+      if (ws.data.sessionId) {
+        globalThis.allClients[ws.data.sessionId] = {
+          ws,
+        };
+        return 
+      }
+
       const folder = `data/${ws.data.folderName}/model/sample`;
       console.log('connected + ' + ws.data.runId, folder);
 
@@ -374,16 +383,19 @@ Bun.serve<WebSocketData>({
         }
       });
 
-      globalThis.allClients[ws.data.runId] = {
-        ws,
-        runId: ws.data.runId,
-        watcher,
-      };
+      if (ws.data.runId)
+        globalThis.allClients[ws.data.runId] = {
+          ws,
+          runId: ws.data.runId,
+          watcher,
+        };
     },
     async close(ws) {
-      await globalThis.allClients[ws.data.runId].watcher?.close();
-      console.log('Removing', globalThis.allClients[ws.data.runId].runId);
-      delete globalThis.allClients[ws.data.runId];
+      if (ws.data.runId) {
+        await globalThis.allClients[ws.data.runId].watcher?.close();
+        console.log('Removing', globalThis.allClients[ws.data.runId].runId);
+        delete globalThis.allClients[ws.data.runId];
+      }
     },
     message(ws, message) {},
   },
@@ -392,25 +404,34 @@ Bun.serve<WebSocketData>({
     const params = url.searchParams;
 
     if (url.pathname === '/ws') {
-      // const sessionId = await generateSessionId();
+      const sessionId = params.get('sessionId')
 
-      // console.log("hello", url, params.get("folder"), url.searchParams.toString());
-
-      server.upgrade(req, {
-        // headers: {
-        //   "Set-Cookie": `SessionId=${sessionId}`,
-        // },
-        data: {
-          // id: runId,
-          folderName: params.get('folder')!,
-          runId: params.get('runId')!,
-        } as WebSocketData,
-      });
+      if (sessionId) {
+        server.upgrade(req, {
+          headers: {
+            "Set-Cookie": `SessionId=${sessionId}`,
+          },
+          data: {
+            sessionId
+          } as WebSocketData,
+        });
+      } else {
+        server.upgrade(req, {
+          headers: {
+            "Set-Cookie": `SessionId=${sessionId}`,
+          },
+          data: {
+            folderName: params.get('folder')!,
+            runId: params.get('runId')!,
+          } as WebSocketData,
+        });
+      }
     }
 
     // return index.html for root path
     if (url.pathname === '/') {
-      return Comp(<Component message="Hello from server!" />);
+      const sessionId = generateSessionId();
+      return Comp(<Component sessionId={sessionId} />);
     }
 
     console.log(url.pathname);
@@ -472,9 +493,27 @@ Bun.serve<WebSocketData>({
         filesOps.push(Bun.write(filePath, x));
       });
       await Promise.allSettled(filesOps);
+
+      const sessionId = req.headers.get("cookie") ?.split("=")[1];
+
+      // console.log(req.headers);
+
+      if (sessionId) {
+        globalThis.allClients[sessionId].ws.send(
+          CompToString(
+            <div id='upload-button' className='btn' hx-swap-oob="innerHTML">
+            <div className="text-orange-400 text-sm normal-case">Pre Processing...</div>
+            </div>,
+          ),
+        );
+      }
+
+      // await new Promise(resolve => setTimeout(resolve, 2000));
+
       const allPluginPreprocesses = allPlugins.map(x => x.onFilesUploaded?.(
         {
-          folderPaths: globalThis.folderPaths!
+          folderPaths: globalThis.folderPaths!,
+          formdata: formdata
         }
       ))
       await Promise.allSettled(allPluginPreprocesses);
@@ -514,7 +553,7 @@ Bun.serve<WebSocketData>({
           <>
             <button
               // id="stop-btn"
-              className="btn"
+              className="btn btn-error"
               hx-post={'./stop?runId=' + runId}
               // hx-swap-oob="false"
               hx-swap="outerHTML"
@@ -605,7 +644,7 @@ Bun.serve<WebSocketData>({
         return Comp(
           <StartButton
             text={
-              <div>
+              <div id='upload-button'>
                 Start
                 <div className="text-red-700 normal-case text-sm">
                   Upload First
