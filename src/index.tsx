@@ -152,7 +152,8 @@ function Component({sessionId}: { sessionId: string }) {
               // hx-trigger="click target:#upload-button"
               hx-disinherit="hx-target"
               // @ts-ignore
-              _="on htmx:xhr:progress(loaded, total) 
+              _="on submit localStorage.setItem('base_model', my.base_model.value) then localStorage.setItem('name', my.name.value) then localStorage.setItem('instance_name', my.instance_name.value) then localStorage.setItem('class_name', my.class_name.value) then localStorage.setItem('repeat_step', my.repeat_step.value)
+              on htmx:xhr:progress(loaded, total) 
               if (loaded/total)*100 != Infinity
                 set #progress.value to (loaded/total)*100
               console.log((loaded/total)*100)
@@ -161,8 +162,10 @@ function Component({sessionId}: { sessionId: string }) {
               <select
                 className="select select-sm select-bordered w-full max-w-xs"
                 name="base_model"
+                id="base_model"
                 placeholder="base_model"
                 defaultValue="chilloutmix-Ni-pruned-fp32.safetensors"
+                _="on load set my.value to localStorage.getItem('base_model')"
               >
                 {/* <option disabled>
                 Pick your favorite Simpson
@@ -182,31 +185,39 @@ function Component({sessionId}: { sessionId: string }) {
                 type="text"
                 className="input input-sm input-bordered w-full max-w-xs"
                 name="name"
+                id="name"
                 placeholder="Name"
                 defaultValue="benny"
+                _="on load set my.value to localStorage.getItem('name')"
               />
 
               <input
                 type="text"
                 className="input input-sm input-bordered w-full max-w-xs"
                 name="instance_name"
+                id="instance_name"
                 placeholder="instance_name"
-                defaultValue="benny123"
+                defaultValue={"benny123"}
+                _="on load set my.value to localStorage.getItem('instance_name')"
               />
 
               <input
                 type="text"
                 className="input input-sm input-bordered w-full max-w-xs"
                 name="class_name"
+                id="class_name"
                 placeholder="class_name"
                 defaultValue="man"
+                _="on load set my.value to localStorage.getItem('class_name')"
               />
               <input
                 type="number"
                 className="input input-sm input-bordered w-full max-w-xs"
                 name="repeat_step"
-                placeholder="40"
+                id="repeat_step"
+                placeholder="repeat_step"
                 defaultValue="40"
+                _="on load set my.value to localStorage.getItem('repeat_step')"
               />
               <input
                 type="file"
@@ -299,15 +310,18 @@ function Component({sessionId}: { sessionId: string }) {
               max="100"
             ></progress>
             {/* </div> */}
-
-            {allPlugins.map((x) => x.getExtraUI?.())}
           </div>
+          <div className="divider divider-horizontal !-mx-[5px]"/>
 
-          <div className="overflow-y-auto w-full">
-            <div
-              id="run-container"
-              className="flex flex-col-reverse grow justify-end h-fit "
-            />
+          
+            <div className=" w-full flex flex-col">
+              <div id={'header'}>
+              <div className='flex justify-end w-full items-center pt-2'>
+                {allPlugins.map((x) => x.getExtraUI?.())}
+              </div>
+              <div className="divider !my-0"/>
+              </div>
+              <Container/>
           </div>
         </div>
       </body>
@@ -372,6 +386,17 @@ function StartButton({ text = 'Start' }: { text?: React.ReactNode }) {
     >
       {text}
     </button>
+  );
+}
+
+function Container() {
+  return (
+    <div className='overflow-y-auto flex-grow'>
+      <div
+      id="run-container"
+      className={`flex flex-col-reverse grow justify-end h-full`}
+    />
+    </div>
   );
 }
 
@@ -600,7 +625,7 @@ function Collapse(
   },
 ) {
   return (
-    <div className="border border-base-300 visible relative">
+    <div className="border-x-0 border-y-1 border border-base-300 visible relative">
       <input
         type="checkbox"
         className={
@@ -717,6 +742,10 @@ Bun.serve<WebSocketData>({
     if (url.pathname === '/') {
       const sessionId = generateSessionId();
       return Comp(<Component sessionId={sessionId} />);
+    }
+
+    if (url.pathname === "/container") {
+      return Comp(<Container />);
     }
 
     console.log(url.pathname);

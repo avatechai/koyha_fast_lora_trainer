@@ -12,7 +12,7 @@
 
 #run-container:empty::before {
   content: "No training lora, upload files and press start.";
-  @apply items-center h-screen justify-center flex
+  @apply items-center h-full justify-center flex
 }
 
 
