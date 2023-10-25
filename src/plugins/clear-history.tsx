@@ -13,7 +13,7 @@ export default function ClearHistoryPlugin(): Plugin {
       return (
         <>
           <div>
-            <button className="btn btn-ghost btn-sm rounded-xl" hx-target="#run-container" hx-swap="outerHTML" hx-get="/container" hx-confirm="Are you sure you want to clear history?"
+            <button className="btn btn-ghost btn-sm" hx-target="#run-container" hx-swap="outerHTML" hx-get="/container" hx-confirm="Are you sure you want to clear history?"
             >
               <PiBroom size={20}/>
             </button>
