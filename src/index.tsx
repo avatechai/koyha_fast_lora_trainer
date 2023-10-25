@@ -543,7 +543,7 @@ function getCommandsParams() {
       commandParams += `--${key} ${value} `;
       continue
     }
-    if (param.type == 'boolean') {
+    if (param.default == true || param.default == false) {
       if (value == null) continue;
       else if (value == 'on') {
         commandParams += `--${key} `;
@@ -578,7 +578,6 @@ function startLoraTraining(folderPaths: FolderPaths) {
   const samplePromptPath = join(dirname(__dirname), folderPaths.sample_prompt); //"/home/avatech/Desktop/projects/kohya_ss/dataset/model/sample/prompt.txt";
 
   const scripPath = trainNetworkPath;
-  console.log(venvPath, trainNetworkPath);
 
   // const command = `source \"./../venv/bin/activate\" && CUDA_VISIBLE_DEVICES=1 accelerate launch --num_cpu_threads_per_process=2 "${scripPath}" --enable_bucket --min_bucket_reso=256 --max_bucket_reso=2048 --pretrained_model_name_or_path="${modelPath}" --train_data_dir="${dataDir}" --resolution="512,512" --output_dir="${outputDir}" --logging_dir="${loggingDir}" --save_model_as=safetensors --output_name="${modelName}" --lr_scheduler_num_cycles="1" --max_data_loader_n_workers="0" --learning_rate="0.0001" --lr_scheduler="cosine" --lr_warmup_steps="595" --train_batch_size="2" --max_train_steps="5950" --save_every_n_epochs="1" --mixed_precision="fp16" --save_precision="fp16" --seed="7" --caption_extension=".txt" --cache_latents --optimizer_type="AdamW" --max_data_loader_n_workers="0" --clip_skip=2 --bucket_reso_steps=64 --flip_aug --xformers --bucket_no_upscale --noise_offset=0.0 --sample_sampler=euler_a --sample_prompts="${samplePromptPath}" --sample_every_n_steps="128"`;
   const command = `source \"${venvPath}\" && CUDA_VISIBLE_DEVICES=${globalThis.advanceParams?.get('CUDA_VISIBLE_DEVICES')} accelerate launch --num_cpu_threads_per_process=2 "${scripPath}" --pretrained_model_name_or_path="${modelPath}" --train_data_dir="${dataDir}" --output_dir="${outputDir}" --logging_dir="${loggingDir}" --save_model_as=safetensors --output_name="${modelName}" --caption_extension=".txt" --sample_prompts="${samplePromptPath}" ${getCommandsParams()}` ;
