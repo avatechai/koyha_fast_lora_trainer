@@ -19,8 +19,23 @@ import { getHighlighter } from 'shikiji';
 import { render } from 'react-dom';
 import React, { ReactElement } from 'react';
 
-import train_network_args from '../args/train_network_args.json'
+import train_network_args_raw from '../args/train_network_args.json'
 
+const exclude_args
+= [
+  'pretrained_model_name_or_path',
+  'train_data_dir',
+  'output_dir',
+  'logging_dir',
+  'save_model_as',
+  'output_name',
+  'caption_extension',
+  'sample_prompts',
+]  
+
+const train_network_args = Object.fromEntries(
+  Object.entries(train_network_args_raw).filter(([key, value]) => !exclude_args.includes(key))
+)
 // Object.defineProperty(train_network_args, 'CUDA_VISIBLE_DEVICES', {
 //   value: {
 //     type: 'number',
@@ -244,15 +259,15 @@ function Component({sessionId}: { sessionId: string }) {
               smallerHeading
               >
                 <>
-                          <label className="label-text">CUDA_VISIBLE_DEVICES</label>
-                          <input
-                            type={ "number"}
-                            name={"CUDA_VISIBLE_DEVICES"}
-                            className="input input-sm input-bordered w-full max-w-xs"
-                            defaultValue={0}
-                          />
-                        </>
-               {Object.entries(train_network_args).map(([key, param], index) => (
+                  <label className="label-text">CUDA_VISIBLE_DEVICES</label>
+                  <input
+                    type={"number"}
+                    name={"CUDA_VISIBLE_DEVICES"}
+                    className="input input-sm input-bordered w-full max-w-xs"
+                    defaultValue={0}
+                  />
+                </>
+                {Object.entries(train_network_args).map(([key, param], index) => (
                     <div key={index}>
                       {param.default === false || param.default === true ? (
                         <div className="form-control">
@@ -266,7 +281,21 @@ function Component({sessionId}: { sessionId: string }) {
                             />
                           </label>
                         </div>
-                      ) : (
+                      ) :  (param.choices != null) ? (
+                        <>
+                          <label className="label-text">{key}</label>
+                          <select
+                            className="select select-sm select-bordered w-full max-w-xs"
+                            name={key}
+                            defaultValue={String(param.default)}
+                          >
+                            {param.choices.map((x) => (
+                              <option key={x}>{x}</option>
+                            ))}
+                          </select>
+                        </>
+                      ) :
+                      (
                         <>
                           <label className="label-text">{key}</label>
                           <input
