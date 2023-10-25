@@ -245,7 +245,7 @@ function Component({sessionId}: { sessionId: string }) {
                 id="base_model"
                 placeholder="base_model"
                 defaultValue="chilloutmix-Ni-pruned-fp32.safetensors"
-                _="on load set my.value to localStorage.getItem('base_model')"
+                // _="on load set my.value to localStorage.getItem('base_model')"
               >
                 {/* <option disabled>
                 Pick your favorite Simpson
@@ -268,7 +268,7 @@ function Component({sessionId}: { sessionId: string }) {
                 id="name"
                 placeholder="Name"
                 defaultValue="benny"
-                _="on load set my.value to localStorage.getItem('name')"
+                // _="on load set my.value to localStorage.getItem('form')"
               />
 
               <input
@@ -278,7 +278,7 @@ function Component({sessionId}: { sessionId: string }) {
                 id="instance_name"
                 placeholder="instance_name"
                 defaultValue={"benny123"}
-                _="on load set my.value to localStorage.getItem('instance_name')"
+                // _="on load set my.value to localStorage.getItem('instance_name')"
               />
 
               <input
@@ -288,7 +288,7 @@ function Component({sessionId}: { sessionId: string }) {
                 id="class_name"
                 placeholder="class_name"
                 defaultValue="man"
-                _="on load set my.value to localStorage.getItem('class_name')"
+                // _="on load set my.value to localStorage.getItem('class_name')"
               />
               <input
                 type="number"
@@ -297,7 +297,7 @@ function Component({sessionId}: { sessionId: string }) {
                 id="repeat_step"
                 placeholder="repeat_step"
                 defaultValue="40"
-                _="on load set my.value to localStorage.getItem('repeat_step')"
+                // _="on load set my.value to localStorage.getItem('repeat_step')"
               />
               <input
                 type="file"
