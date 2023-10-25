@@ -419,10 +419,10 @@ function Component({sessionId}: { sessionId: string }) {
           
             <div className=" w-full flex flex-col">
               <div id={'header'}>
-              <div className='flex justify-end w-full items-center pt-2'>
+              <div className='flex justify-end w-full items-center'>
                 {allPlugins.map((x) => x.getExtraUI?.())}
               </div>
-              <div className="divider !my-0"/>
+              <div className="divider !my-0 h-[1px]"/>
               </div>
               <Container/>
           </div>
