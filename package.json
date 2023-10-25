@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently \"bun run --hot ./src/index.tsx\" \"bunx tailwindcss -i ./index.css -o ./output.css --watch\"",
-    "dev-dry": "concurrently \"bun run --hot ./src/index.tsx --debug\" \"bunx tailwindcss -i ./index.css -o ./output.css --watch\""
+    "dev-dry": "concurrently \"bun run --hot ./src/index.tsx --debug\" \"bunx tailwindcss -i ./index.css -o ./output.css --watch\"",
+    "extract-args": "source \"kohya_ss/venv/bin/activate\" && python get_args.py"
   },
   "devDependencies": {
     "@types/react": "^18.2.28",

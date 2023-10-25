@@ -6,6 +6,7 @@ import {
   ChildProcess,
   ChildProcessWithoutNullStreams,
   spawn,
+  spawnSync,
 } from 'child_process';
 import { dirname, extname, join, relative } from 'path';
 // import { cache } from 'react'
@@ -15,9 +16,45 @@ import { exists, readFileSync } from 'fs';
 import { argv } from 'process';
 
 import { getHighlighter } from 'shikiji';
-import AutoCaptioningPlugin from './plugins/captioning';
 import { render } from 'react-dom';
 import React, { ReactElement } from 'react';
+
+import train_network_args_raw from '../args/train_network_args.json'
+
+const exclude_args
+= [
+  'pretrained_model_name_or_path',
+  'train_data_dir',
+  'output_dir',
+  'logging_dir',
+  'save_model_as',
+  'output_name',
+  'caption_extension',
+  'sample_prompts',
+]  
+
+const train_network_args = Object.fromEntries(
+  Object.entries(train_network_args_raw).filter(([key, value]) => !exclude_args.includes(key))
+)
+// Object.defineProperty(train_network_args, 'CUDA_VISIBLE_DEVICES', {
+//   value: {
+//     type: 'number',
+//     default: 0,
+//   }
+// })
+
+// {
+//   name: 'CUDA_VISIBLE_DEVICES',
+//   type: 'number',
+//   default: 0,
+// },
+
+// const command = `source \"kohya_ss/venv/bin/activate\" && python get_args.py` ;
+// let cmdarray = command.split(' ');
+// const result = spawnSync(cmdarray.shift()!, cmdarray, {
+//   shell: true,
+// });
+// console.log("Args: ", result.stdout.toString())
 
 const shiki = await getHighlighter({
   themes: ['nord'],
@@ -232,26 +269,49 @@ function Component({sessionId}: { sessionId: string }) {
               }
               smallerHeading
               >
-               {params.map((param, index) => (
+                <>
+                  <label className="label-text">CUDA_VISIBLE_DEVICES</label>
+                  <input
+                    type={"number"}
+                    name={"CUDA_VISIBLE_DEVICES"}
+                    className="input input-sm input-bordered w-full max-w-xs"
+                    defaultValue={0}
+                  />
+                </>
+                {Object.entries(train_network_args).map(([key, param], index) => (
                     <div key={index}>
-                      {param.type === "boolean" ? (
+                      {param.default === false || param.default === true ? (
                         <div className="form-control">
                           <label className="label cursor-pointer">
-                            <span className="label-text">{param.name}</span>
+                            <span className="label-text">{key}</span>
                             <input
                               type="checkbox"
-                              name={param.name}
+                              name={key}
                               className="toggle"
-                              defaultChecked={param.default as boolean}
+                              defaultChecked={param.default}
                             />
                           </label>
                         </div>
-                      ) : (
+                      ) :  (param.choices != null) ? (
                         <>
-                          <label className="label-text">{param.name}</label>
+                          <label className="label-text">{key}</label>
+                          <select
+                            className="select select-sm select-bordered w-full max-w-xs"
+                            name={key}
+                            defaultValue={String(param.default)}
+                          >
+                            {param.choices.map((x) => (
+                              <option key={x}>{x}</option>
+                            ))}
+                          </select>
+                        </>
+                      ) :
+                      (
+                        <>
+                          <label className="label-text">{key}</label>
                           <input
-                            type={param.type}
-                            name={param.name}
+                            type={(param.type == "float" || param.type == "int") ? "number" : "text"}
+                            name={key}
                             className="input input-sm input-bordered w-full max-w-xs"
                             defaultValue={String(param.default)}
                           />
@@ -410,151 +470,6 @@ export type FolderPaths = {
   log: string;
 };
 
-type Params = {
-  name: string;
-  options?: string[]
-  type: 'number' | 'text' | 'boolean'
-  default: string | boolean | number
-}
-
-const params: Params[] = [
-  // {
-  //   name: 'num_cpu_threads_per_process',
-  //   type: 'number',
-  //   default: 2
-  // },
-  {
-    name: 'CUDA_VISIBLE_DEVICES',
-    type: 'number',
-    default: 0,
-  },
-  {
-    name: 'resolution',
-    type: 'text',
-    default: "512,512"
-  },
-  {
-    name: 'enable_bucket',
-    type: 'boolean',
-    default: true
-  },
-  {
-    name: 'min_bucket_reso',
-    type: 'number',
-    default: 256
-  },
-  {
-    name: 'max_bucket_reso',
-    type: 'number',
-    default: 2048
-  },
-  {
-    name: 'lr_scheduler_num_cycles',
-    type: 'text',
-    default: "1"
-  },
-  {
-    name: 'max_data_loader_n_workers',
-    type: 'number',
-    default: 0
-  },
-  {
-    name: 'learning_rate',
-    type: 'number',
-    default: 0.0001
-  },
-  {
-    name: 'lr_scheduler',
-    type: 'text',
-    default: "cosine"
-  },
-  {
-    name: 'lr_warmup_steps',
-    type: 'number',
-    default: 595
-  },
-  {
-    name: 'train_batch_size',
-    type: 'number',
-    default: 2
-  },
-  {
-    name: 'max_train_steps',
-    type: 'number',
-    default: 5950
-  },
-  {
-    name: 'save_every_n_epochs',
-    type: 'number',
-    default: 1
-  },
-  {
-    name: 'mixed_precision',
-    type: 'text',
-    default: "fp16"
-  },
-  {
-    name: 'save_precision',
-    type: 'text',
-    default: "fp16"
-  },
-  {
-    name: 'seed',
-    type: 'number',
-    default: 7
-  },
-  {
-    name: 'clip_skip',
-    type: 'number',
-    default: 2
-  },
-  {
-    name: 'optimizer_type',
-    type: 'text',
-    default: "AdamW"
-  },
-  {
-    name: 'bucket_reso_steps',
-    type: 'number',
-    default: 64
-  },
-  {
-    name: 'flip_aug',
-    type: 'boolean',
-    default: true
-  },
-  {
-    name: 'xformers',
-    type: 'boolean',
-    default: true
-  },
-  {
-    name: 'bucket_no_upscale',
-    type: 'boolean',
-    default: true
-  },
-  {
-    name: 'cache_latents',
-    type: 'boolean',
-    default: true
-  },
-  {
-    name: 'noise_offset',
-    type: 'number',
-    default: 0.0
-  },
-  {
-    name: 'sample_sampler',
-    type: 'text',
-    default: "euler_a"
-  },
-  {
-    name: 'sample_every_n_steps',
-    type: 'number',
-    default: 128
-  }
-];
-
 function getCommandsParams() {
   const formdata = globalThis.advanceParams;
 
@@ -562,16 +477,16 @@ function getCommandsParams() {
 
   let commandParams = "";
 
-  for (const param of params) {
-    const value = formdata.get(param.name);
-    if (param.name == "CUDA_VISIBLE_DEVICES") continue;
+  for (const [key,param] of Object.entries(train_network_args)) {
+    const value = formdata.get(key);
+    if (key == "CUDA_VISIBLE_DEVICES") continue;
     if (param.type == 'boolean') {
       if (value == null) continue;
       else if (value == 'on') {
-        commandParams += `--${param.name} `;
+        commandParams += `--${key} `;
       }
     } else if (value !== null) {
-      commandParams += `--${param.name}=${value} `;
+      commandParams += `--${key}=${value} `;
     }
   }
 
