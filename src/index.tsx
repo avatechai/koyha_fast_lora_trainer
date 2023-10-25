@@ -148,7 +148,7 @@ function Component({sessionId}: { sessionId: string }) {
               hx-post="/upload"
               hx-swap="innerHTML"
               hx-target="#upload-button"
-              className="flex flex-col gap-1 overflow-y-scroll flex-grow"
+              className="flex flex-col gap-1 overflow-y-auto flex-grow h-fit"
               // hx-trigger="click target:#upload-button"
               hx-disinherit="hx-target"
               // @ts-ignore
@@ -294,7 +294,7 @@ function Component({sessionId}: { sessionId: string }) {
             </div>
             <progress
               id="progress"
-              className="w-full progress"
+              className="w-full progress  mb-2"
               value="0"
               max="100"
             ></progress>
@@ -617,7 +617,7 @@ function Collapse(
       >
         {props.heading}
       </div>
-      <div className="w-full h-0 !min-h-fit invisible flex-col items-start opacity-0 transition-all -translate-y-2">
+      <div className="w-full h-0 invisible flex-col items-start opacity-0 transition-all -translate-y-2 overflow-hidden">
         <div className="px-2 pb-2">{props.children}</div>
       </div>
     </div>
