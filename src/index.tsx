@@ -54,7 +54,7 @@ console.log("Plugins Loaded: ", allPlugins.map(x => x.getName()));
 
 export let debug = (argv.length >= 3 && argv[2] == '--debug') ?? false;
 
-console.log(debug);
+// console.log(debug);
 
 declare global {
   var restartCount: number;
@@ -148,7 +148,7 @@ function Component({sessionId}: { sessionId: string }) {
               hx-post="/upload"
               hx-swap="innerHTML"
               hx-target="#upload-button"
-              className="flex flex-col gap-1 overflow-y-scroll"
+              className="flex flex-col gap-1 overflow-y-scroll flex-grow"
               // hx-trigger="click target:#upload-button"
               hx-disinherit="hx-target"
               // @ts-ignore
@@ -210,19 +210,18 @@ function Component({sessionId}: { sessionId: string }) {
               />
               <input
                 type="file"
-                className="file-input file-input-bordered file-input-sm w-full max-w-xs"
+                className="file-input file-input-bordered file-input-sm w-full max-w-xs min-h-[40px]"
                 id="files"
                 name="files"
                 multiple
               />
 
-              <div className="collapse bg-base-200 h-fit">
-                <input type="checkbox" />
-                <div className="collapse-title ">
+              <Collapse heading={
                   <span className="label-text">Advance Params</span>
-                </div>
-                <div className="collapse-content overflow-y-auto">
-                  {params.map((param, index) => (
+              }
+              smallerHeading
+              >
+               {params.map((param, index) => (
                     <div key={index}>
                       {param.type === "boolean" ? (
                         <div className="form-control">
@@ -249,8 +248,17 @@ function Component({sessionId}: { sessionId: string }) {
                       )}
                     </div>
                   ))}
+              </Collapse>
+{/* 
+              <div className="collapse bg-base-200 h-fit ">
+                <input type="checkbox" />
+                <div className="collapse-title ">
+                  <span className="label-text">Advance Params</span>
                 </div>
-              </div>
+                <div className="collapse-content overflow-y-auto">
+                 
+                </div>
+              </div> */}
 
               {allPlugins.map((x) => x.getFormUI?.())}
 
@@ -586,7 +594,7 @@ type WebSocketData =
   | { sessionId?: never; folderName: string; runId: string };
 
 function Collapse(
-  props: React.ComponentProps<'div'> & {
+  props : React.ComponentProps<'div'> & {
     heading: React.ReactNode;
     smallerHeading?: boolean;
   },
@@ -597,7 +605,7 @@ function Collapse(
         type="checkbox"
         className={
           'w-full appearance-none absolute cursor-pointer translate-y-0 ' +
-          (props.smallerHeading ? ' h-[20px]' : ' h-[60px]')
+          (props.smallerHeading ? ' h-[28px]' : ' h-[60px]')
         }
         hx-on:click="['!h-fit', '!visible', '!opacity-100', '!translate-y-0'].map(v=> this.nextElementSibling.nextElementSibling.classList.toggle(v) ) "
       />
@@ -634,6 +642,7 @@ Bun.serve<WebSocketData>({
       const watcher = chokidar.watch(folder, {
         ignored: /^\./,
         persistent: true,
+        ignoreInitial: true,
       });
 
       watcher.on('add', async (filepath) => {
@@ -853,7 +862,7 @@ Bun.serve<WebSocketData>({
                   </>
                 }
               >
-                <div className="w-full">
+                <div className="w-full text-sm">
                   <Collapse
                     smallerHeading
                     heading={
