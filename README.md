@@ -33,8 +33,10 @@ chmod +x ./setup.sh
 
 To run:
 
+You need to declare your checkpoint folder path with commandline argument '--ckpt-dir'.
+
 ```bash
-bun dev
+bun start --ckpt-dir "<your folder path>"
 ```
 
 # Development
