@@ -275,35 +275,39 @@ function Component({sessionId}: { sessionId: string }) {
             /> */}
 
               <input
+                required
                 type="text"
                 className="input input-sm input-bordered w-full max-w-xs"
                 name="name"
                 id="name"
-                placeholder="Name"
-                defaultValue="benny"
+                placeholder="lora_name: mylora"
+                defaultValue=""
                 // _="on load set my.value to localStorage.getItem('form')"
               />
 
               <input
+                required
                 type="text"
                 className="input input-sm input-bordered w-full max-w-xs"
                 name="instance_name"
                 id="instance_name"
-                placeholder="instance_name"
-                defaultValue={"benny123"}
+                placeholder="instance_name: asd | ... "
+                defaultValue=""
                 // _="on load set my.value to localStorage.getItem('instance_name')"
               />
 
               <input
+                required
                 type="text"
                 className="input input-sm input-bordered w-full max-w-xs"
                 name="class_name"
                 id="class_name"
-                placeholder="class_name"
-                defaultValue="man"
+                placeholder="class_name: man | girl | boy ..."
+                defaultValue=""
                 // _="on load set my.value to localStorage.getItem('class_name')"
               />
               <input
+                required
                 type="number"
                 className="input input-sm input-bordered w-full max-w-xs"
                 name="repeat_step"
@@ -313,6 +317,7 @@ function Component({sessionId}: { sessionId: string }) {
                 // _="on load set my.value to localStorage.getItem('repeat_step')"
               />
               <input
+                required
                 type="file"
                 className="file-input file-input-bordered file-input-sm w-full max-w-xs min-h-[40px]"
                 id="files"

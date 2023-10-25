@@ -1,6 +1,6 @@
 # Fast Lora Trainer
 
-- Streamlined image captioning processing.
+- Streamlined image captioning processing (BLIP & WD14).
 - Auto setup images data folders.
 - Auto sampling preview on dashboard.
 
@@ -33,8 +33,10 @@ chmod +x ./setup.sh
 
 To run:
 
+You need to declare your checkpoint folder path with commandline argument '--ckpt-dir'.
+
 ```bash
-bun dev
+bun start --ckpt-dir "<your folder path>"
 ```
 
 # Development
