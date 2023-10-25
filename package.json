@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "concurrently \"bun run --hot ./src/index.tsx\" \"bunx tailwindcss -i ./index.css -o ./output.css --watch\"",
     "dev-dry": "concurrently \"bun run --hot ./src/index.tsx --debug\" \"bunx tailwindcss -i ./index.css -o ./output.css --watch\"",
+    "start": "bunx tailwindcss -i ./index.css -o ./output.css && bun run ./src/index.tsx",
     "extract-args": "source \"kohya_ss/venv/bin/activate\" && python get_args.py"
   },
   "devDependencies": {
@@ -21,6 +22,7 @@
   },
   "dependencies": {
     "chokidar": "^3.5.3",
+    "commander": "^11.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-icons": "^4.11.0",

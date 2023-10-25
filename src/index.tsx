@@ -19,6 +19,8 @@ import { getHighlighter } from 'shikiji';
 import { render } from 'react-dom';
 import React, { ReactElement } from 'react';
 
+import { Command } from 'commander';
+
 import train_network_args_raw from './args/train_network_args.json'
 
 const exclude_args
@@ -131,7 +133,15 @@ pluginFiles = pluginFiles.filter(file => {
 const allPlugins = (await Promise.all(pluginFiles.map(x => import('./plugins/' + x)))).map(x => (x.default as () => Plugin)());
 console.log("Plugins Loaded: ", allPlugins.map(x => x.getName()));
 
+const program = new Command();
+
+program.option('--ckpt-dir')
+program.parse();
+
+
 export let debug = (argv.length >= 3 && argv[2] == '--debug') ?? false;
+
+export let checkpoints = program.args[0]
 
 // console.log(debug);
 
@@ -189,8 +199,7 @@ if (!globalThis.firstTime) {
   globalThis.restartCount++;
 }
 
-export let modelFolders =
-  '/home/avatech/Desktop/projects/stable-diffusion-webui/models/Stable-diffusion/';
+export let modelFolders = checkpoints;
 
 let folderPath = debug
   ? ['chilloutmix-Ni-pruned-fp32.safetensors']
