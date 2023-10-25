@@ -67,7 +67,7 @@ argsArray.forEach(arg => {
   defaultValueOverrides[key.trim()] = value ? value.replace(/"/g, '').trim() : true;
 });
 
-console.log(defaultValueOverrides);
+// console.log(defaultValueOverrides);
 
 const train_network_args = Object.fromEntries(
   Object.entries(train_network_args_raw).filter(([key, value]) => !exclude_args.includes(key))
@@ -131,7 +131,7 @@ pluginFiles = pluginFiles.filter(file => {
 });
 
 const allPlugins = (await Promise.all(pluginFiles.map(x => import('./plugins/' + x)))).map(x => (x.default as () => Plugin)());
-console.log("Plugins Loaded: ", allPlugins.map(x => x.getName()));
+// console.log("Plugins Loaded: ", allPlugins.map(x => x.getName()));
 
 const program = new Command();
 
@@ -142,6 +142,11 @@ program.parse();
 export let debug = (argv.length >= 3 && argv[2] == '--debug') ?? false;
 
 export let checkpoints = program.args[0]
+
+if(!checkpoints) {
+  console.error('ckpt dir cannot be null!')
+  process.exit()
+}
 
 // console.log(debug);
 
