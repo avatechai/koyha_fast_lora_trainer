@@ -19,7 +19,7 @@ import { getHighlighter } from 'shikiji';
 import { render } from 'react-dom';
 import React, { ReactElement } from 'react';
 
-import train_network_args_raw from '../args/train_network_args.json'
+import train_network_args_raw from './args/train_network_args.json'
 
 const exclude_args
 = [
@@ -48,7 +48,6 @@ const exclude_args
 //   'mixed_precision': 'fp16',
 //   'save_precision': 'fp16'
 //   // 'save_model_as': "safetensors"
-
 // }
 
 const commandArgs = '--resolution="512,512" --enable_bucket --min_bucket_reso=256 --max_bucket_reso=2048 --lr_scheduler_num_cycles="10"  --learning_rate="1.0" --lr_scheduler="constant" --train_batch_size="8" --max_train_steps="1250" --save_every_n_epochs="1" --mixed_precision="fp16" --save_precision="fp16" --cache_latents --optimizer_type="Prodigy" --max_data_loader_n_workers="0" --bucket_reso_steps=64 --flip_aug --xformers --bucket_no_upscale --noise_offset=0.0 --sample_sampler=euler_a --sample_every_n_steps="128" --network_alpha="1" --network_module=lycoris.kohya --network_args "conv_dim=64" "conv_alpha=1" "algo=locon" --text_encoder_lr=1.0 --unet_lr=1.0 --network_dim=64 --no_half_vae';
@@ -108,7 +107,7 @@ export interface Plugin {
   getName: () => string;
   handleRequest?(req: Request): Promise<Response> | Response | undefined;
   getFormUI?(): React.ReactNode;
-  getExtraUI?(): React.ReactNode;
+  getHeaderUI?(): React.ReactNode;
   onFilesUploaded?(props: {
     folderPaths: FolderPaths
     formdata: FormData
@@ -420,7 +419,7 @@ function Component({sessionId}: { sessionId: string }) {
             <div className=" w-full flex flex-col">
               <div id={'header'}>
               <div className='flex justify-end w-full items-center'>
-                {allPlugins.map((x) => x.getExtraUI?.())}
+                {allPlugins.map((x) => x.getHeaderUI?.())}
               </div>
               <div className="divider !my-0 h-[1px]"/>
               </div>

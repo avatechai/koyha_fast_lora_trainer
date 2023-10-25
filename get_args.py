@@ -24,5 +24,5 @@ args_dict = {
 args_json = json.dumps(args_dict)
 print(args_json)
 
-with open('args/train_network_args.json', 'w') as f:
+with open('src/args/train_network_args.json', 'w') as f:
     json.dump(args_dict, f, ensure_ascii=False, indent=4)
