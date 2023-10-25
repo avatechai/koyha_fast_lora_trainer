@@ -772,7 +772,7 @@ Bun.serve<WebSocketData>({
       });
       await Promise.allSettled(filesOps);
 
-      const sessionId = req.headers.get("cookie") ?.split("=")[1];
+      const sessionId = req.headers.get("cookie")?.match(/SessionId=([^;]*)/)?.[1];
 
       // console.log(req.headers);
 
