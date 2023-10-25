@@ -27,15 +27,58 @@ const exclude_args
   'train_data_dir',
   'output_dir',
   'logging_dir',
-  'save_model_as',
+  // 'save_model_as',
   'output_name',
   'caption_extension',
   'sample_prompts',
-]  
+]
+
+// const defaultValueOverrides = {
+//   'caption_extention': '.txt',
+//   'enable_bucket': true,
+//   'min_bucket_reso': 256,
+//   'max_bucket_reso': 2048,
+//   'resolution': "512,512",
+//   'lr_scheduler_num_cycles': "10",
+//   'learning_rate': "1.0",
+//   'lr_scheduler': 'constant',
+//   'train_batch_size': '8',
+//   'max_train_steps': '1250',
+//   'save_every_n_epochs': '1',
+//   'mixed_precision': 'fp16',
+//   'save_precision': 'fp16'
+//   // 'save_model_as': "safetensors"
+
+// }
+
+const commandArgs = '--resolution="512,512" --enable_bucket --min_bucket_reso=256 --max_bucket_reso=2048 --lr_scheduler_num_cycles="10"  --learning_rate="1.0" --lr_scheduler="constant" --train_batch_size="8" --max_train_steps="1250" --save_every_n_epochs="1" --mixed_precision="fp16" --save_precision="fp16" --cache_latents --optimizer_type="Prodigy" --max_data_loader_n_workers="0" --bucket_reso_steps=64 --flip_aug --xformers --bucket_no_upscale --noise_offset=0.0 --sample_sampler=euler_a --sample_every_n_steps="128" --network_alpha="1" --network_module=lycoris.kohya --network_args "conv_dim=64" "conv_alpha=1" "algo=locon" --text_encoder_lr=1.0 --unet_lr=1.0 --network_dim=64 --no_half_vae';
+
+const argsArray = commandArgs.split('--').filter(Boolean);
+const defaultValueOverrides = {} as any;
+
+argsArray.forEach(arg => {
+  if (arg.includes("network_args")) {
+    const [key, ...values] = arg.trim().split(' ');
+    defaultValueOverrides[key.trim()] = values.join(' ');
+    return;
+  }
+  const [key, value] = arg.replace(/"/g, '').trim().split('=');
+  defaultValueOverrides[key.trim()] = value ? value.replace(/"/g, '').trim() : true;
+});
+
+console.log(defaultValueOverrides);
 
 const train_network_args = Object.fromEntries(
   Object.entries(train_network_args_raw).filter(([key, value]) => !exclude_args.includes(key))
 )
+
+Object.entries(defaultValueOverrides).forEach(([key, value]) => {
+  if (train_network_args[key]) {
+    // @ts-ignore
+    train_network_args[key].default = value;
+  }
+});
+
 // Object.defineProperty(train_network_args, 'CUDA_VISIBLE_DEVICES', {
 //   value: {
 //     type: 'number',
@@ -313,7 +356,7 @@ function Component({sessionId}: { sessionId: string }) {
                             type={(param.type == "float" || param.type == "int") ? "number" : "text"}
                             name={key}
                             className="input input-sm input-bordered w-full max-w-xs"
-                            defaultValue={String(param.default)}
+                            defaultValue={param.default != null ? param.default : ""}
                           />
                         </>
                       )}
@@ -480,13 +523,17 @@ function getCommandsParams() {
   for (const [key,param] of Object.entries(train_network_args)) {
     const value = formdata.get(key);
     if (key == "CUDA_VISIBLE_DEVICES") continue;
+    if (key == ("network_args")) {
+      commandParams += `--${key} ${value} `;
+      continue
+    }
     if (param.type == 'boolean') {
       if (value == null) continue;
       else if (value == 'on') {
         commandParams += `--${key} `;
       }
-    } else if (value !== null) {
-      commandParams += `--${key}=${value} `;
+    } else if (value !== null && value !== undefined && value !== "" && value !== "null") {
+      commandParams += `--${key}="${value}" `;
     }
   }
 
