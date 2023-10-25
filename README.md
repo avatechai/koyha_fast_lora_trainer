@@ -1,6 +1,6 @@
 # Fast Lora Trainer
 
-- Streamlined image captioning processing.
+- Streamlined image captioning processing (BLIP & WD14).
 - Auto setup images data folders.
 - Auto sampling preview on dashboard.
 
