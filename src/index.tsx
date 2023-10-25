@@ -494,12 +494,10 @@ function StartButton({ text = 'Start' }: { text?: React.ReactNode }) {
 
 function Container() {
   return (
-    <div className='overflow-y-auto flex-grow'>
       <div
       id="run-container"
       className={`flex flex-col-reverse grow justify-end h-full`}
     />
-    </div>
   );
 }
 
