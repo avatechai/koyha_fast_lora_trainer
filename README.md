@@ -4,10 +4,31 @@
 - Auto setup images data folders.
 - Auto sampling preview on dashboard.
 
-To install dependencies:
+# Setup
+
+### Intall fast lora deps
+
+if you dont have bun -> https://bun.sh/docs/installation#installing
 
 ```bash
 bun install
+```
+
+### Setup kohya_ss
+Full setup and pre Pre-requirements https://github.com/bmaltais/kohya_ss
+
+Windows
+```
+cd kohya_ss
+chmod +x ./setup.sh
+./setup.bat
+```
+
+Linux or macOS
+```
+cd kohya_ss
+chmod +x ./setup.sh
+./setup.sh
 ```
 
 To run:
@@ -16,10 +37,10 @@ To run:
 bun dev
 ```
 
+# Development
+
 For development without backend / generations
 
 ```bash
 bun dev-dry
 ```
-
-This project was created using `bun init` in bun v1.0.2. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
