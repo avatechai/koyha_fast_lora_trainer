@@ -543,7 +543,7 @@ function getCommandsParams() {
       commandParams += `--${key} ${value} `;
       continue
     }
-    if (param.default == true || param.default == false) {
+    if ((param.default == true || param.default == false) && param.type == null) {
       if (value == null) continue;
       else if (value == 'on') {
         commandParams += `--${key} `;
@@ -643,7 +643,7 @@ function Collapse(
 }
 
 Bun.serve<WebSocketData>({
-  websocket: {
+    websocket: {
     async open(ws) {
       console.log(ws.data);
 
