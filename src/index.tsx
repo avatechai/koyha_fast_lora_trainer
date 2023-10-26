@@ -14,6 +14,7 @@ import React, { ReactElement } from 'react';
 import { Command } from 'commander';
 
 import train_network_args_raw from './args/train_network_args.json'
+import lora_config from './presets/config.json'
 
 const exclude_args
 = [
@@ -59,7 +60,129 @@ argsArray.forEach(arg => {
   defaultValueOverrides[key.trim()] = value ? value.replace(/"/g, '').trim() : true;
 });
 
-// console.log(defaultValueOverrides);
+Object.entries(lora_config).forEach(([key, value]) => {
+  if (defaultValueOverrides[key]) {
+    defaultValueOverrides[key] = value;
+  }
+});
+
+// console.log('defaultValueOverrides', defaultValueOverrides);
+
+const mapArguments =  () => {
+  defaultValueOverrides['resolution'] = lora_config['max_resolution'];
+
+  if (lora_config["LoRA_type"] === 'LoCon' || lora_config["LoRA_type"] === 'LyCORIS/LoCon') {
+    defaultValueOverrides["network_module"] = "lycoris.kohya";
+    defaultValueOverrides["network_args"] = `conv_dim=${lora_config['conv_dim']} conv_alpha=${lora_config['conv_alpha']} algo=locon`;
+  }
+
+  if (lora_config["LoRA_type"] === 'LyCORIS/LoHa') {
+    defaultValueOverrides["network_module"] = "lycoris.kohya";
+    defaultValueOverrides["network_args"] = `conv_dim=${lora_config['conv_dim']} conv_alpha=${lora_config['conv_alpha']} use_cp=${lora_config['use_cp']} algo=loha`;
+    if (lora_config['network_dropout'] > 0) {
+      defaultValueOverrides["network_dropout"] = lora_config['network_dropout'];
+    }
+  }
+
+  if (lora_config["LoRA_type"] === 'LyCORIS/iA3') {
+    defaultValueOverrides["network_module"] = "lycoris.kohya";
+    defaultValueOverrides["network_args"] = `conv_dim=${lora_config['conv_dim']} conv_alpha=${lora_config['conv_alpha']} train_on_input=${lora_config['train_on_input']} algo=ia3`;
+    if (lora_config['network_dropout'] > 0) {
+      defaultValueOverrides["network_dropout"] = lora_config['network_dropout'];
+    }
+  }
+
+  if (lora_config["LoRA_type"] === 'LyCORIS/DyLoRA') {
+    defaultValueOverrides["network_module"] = "lycoris.kohya";
+    defaultValueOverrides["network_args"] = `conv_dim=${lora_config['conv_dim']} conv_alpha=${lora_config['conv_alpha']} use_cp=${lora_config['use_cp']} block_size=${lora_config['unit']} algo=dylora`;
+    if (lora_config['network_dropout'] > 0) {
+      defaultValueOverrides["network_dropout"] = lora_config['network_dropout'];
+    }
+  }
+
+  if (lora_config["LoRA_type"] === 'LyCORIS/DyLoRA') {
+    defaultValueOverrides["network_module"] = "lycoris.kohya";
+    defaultValueOverrides["network_args"] = `conv_dim=${lora_config['conv_dim']} conv_alpha=${lora_config['conv_alpha']} use_cp=${lora_config['use_cp']} factor=${lora_config['factor']} algo=lokr`;
+    if (lora_config['network_dropout'] > 0) {
+      defaultValueOverrides["network_dropout"] = lora_config['network_dropout'];
+    }
+  }
+
+  if (lora_config["LoRA_type"] === 'Kohya LoCon' || lora_config["LoRA_type"] === "Standard" || lora_config["LoRA_type"] === 'LoRA-FA') {
+    if (lora_config["LoRA_type"] === 'LoRA-FA') {
+      defaultValueOverrides["network_module"] = "networks.lora_fa";
+    } else {
+      defaultValueOverrides["network_module"] = "networks.lora";
+    }
+
+    const kohya_lora_var_list = [
+      'down_lr_weight',
+      'mid_lr_weight',
+      'up_lr_weight',
+      'block_lr_zero_threshold',
+      'block_dims',
+      'block_alphas',
+      'conv_block_dims',
+      'conv_block_alphas',
+      'rank_dropout',
+      'module_dropout',
+    ]
+
+    for (const key of kohya_lora_var_list) {
+      if ((lora_config as any)[key]) {
+        defaultValueOverrides[key] = (lora_config as any)[key];
+      }
+    }
+  }
+
+  if (lora_config["LoRA_type"] === 'Kohya DyLoRA') {
+    defaultValueOverrides["network_module"] = "networks.dylora";
+
+    const kohya_lora_var_list = [
+      'conv_dim',
+      'conv_alpha',
+      'down_lr_weight',
+      'mid_lr_weight',
+      'up_lr_weight',
+      'block_lr_zero_threshold',
+      'block_dims',
+      'block_alphas',
+      'conv_block_dims',
+      'conv_block_alphas',
+      'rank_dropout',
+      'module_dropout',
+      'unit',
+    ]
+
+    for (const key of kohya_lora_var_list) {
+      if ((lora_config as any)[key]) {
+        defaultValueOverrides[key] = (lora_config as any)[key];
+      }
+    }
+  }
+
+  defaultValueOverrides["network_dim"] = lora_config["network_dim"];
+
+  if (lora_config['lora_network_weights'] !== '') {
+    defaultValueOverrides['network_weights'] = lora_config['lora_network_weights'];
+  }
+
+  if (lora_config['lr_scheduler_num_cycles'] !== '') {
+    defaultValueOverrides['lr_scheduler_num_cycles'] = lora_config['lr_scheduler_num_cycles'];
+  } else {
+    defaultValueOverrides['lr_scheduler_num_cycles'] = lora_config['epoch'];
+  }
+
+  if (lora_config['sdxl_cache_text_encoder_outputs']) {
+    defaultValueOverrides['cache_text_encoder_outputs'] = true;
+  }
+
+  if (lora_config['sdxl_no_half_vae']) {
+    defaultValueOverrides['no_half_vae'] = true;
+  }
+}
+
+mapArguments();
 
 const train_network_args = Object.fromEntries(
   Object.entries(train_network_args_raw).filter(([key, value]) => !exclude_args.includes(key))
@@ -204,12 +327,19 @@ let folderPath = debug
   : (await readdir(modelFolders)).filter((x) => x.endsWith('safetensors'));
 // let folderPath = ["chilloutmix-Ni-pruned-fp32.safetensors"]
 
+const train_network_args_values = Object.fromEntries(Object.entries(train_network_args).map(([key, param]) => {
+  return [key, param.default]
+}))
+// console.log(train_network_args_values);
+
 const presets = {
   "man": {
-    name: "man"
+    name: "man",
+    ...train_network_args_values
   },
   "girl": {
-    name: "girl"
+    name: "girl",
+    ...train_network_args_values
   }
 }
 
@@ -251,7 +381,7 @@ function Component({sessionId}: { sessionId: string }) {
             >
               {
                 Object.entries(presets).map(([key, x]) => <li>
-                  <a _={`on click call applyPreset('form', '${JSON.stringify(x)}') call document.activeElement.blur()`}>
+                  <a _={`on click call applyPreset('form', '${key}') call document.activeElement.blur()`}>
                     {key}
                   </a>
                 </li>)
@@ -780,6 +910,16 @@ Bun.serve<WebSocketData>({
           'Content-Type': 'text/javascript',
         },
       });
+    }
+
+    for (const key in presets) {
+      if (url.pathname === '/' + key + '.json') {
+        return new Response(JSON.stringify((presets as any)[key]), {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+      } 
     }
 
     // parse formdata at /upload
