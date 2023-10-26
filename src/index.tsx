@@ -14,7 +14,6 @@ import React, { ReactElement } from 'react';
 import { Command } from 'commander';
 
 import train_network_args_raw from './args/train_network_args.json'
-import lora_config from './presets/config.json'
 
 const exclude_args
 = [
@@ -60,59 +59,62 @@ argsArray.forEach(arg => {
   defaultValueOverrides[key.trim()] = value ? value.replace(/"/g, '').trim() : true;
 });
 
-Object.entries(lora_config).forEach(([key, value]) => {
-  if (defaultValueOverrides[key]) {
-    defaultValueOverrides[key] = value;
+const presetsDir = join(dirname(__dirname), "src", "presets")
+const presets = Object.fromEntries(
+  (await readdir(presetsDir)).filter((file) => file.endsWith('json')).map(file => [file, join(presetsDir, file)])
+);
+const mapArguments = async (defaultArguments: any, loraConfigPath: string) => {
+  const loraConfig = await Bun.file(loraConfigPath).json();
+
+  Object.entries(loraConfig).forEach(([key, value]) => {
+    if (defaultArguments[key]) {
+      defaultArguments[key] = value;
+    }
+  });
+  defaultArguments['resolution'] = loraConfig['max_resolution'];
+
+  if (loraConfig["LoRA_type"] === 'LoCon' || loraConfig["LoRA_type"] === 'LyCORIS/LoCon') {
+    defaultArguments["network_module"] = "lycoris.kohya";
+    defaultArguments["network_args"] = `conv_dim=${loraConfig['conv_dim']} conv_alpha=${loraConfig['conv_alpha']} algo=locon`;
   }
-});
 
-// console.log('defaultValueOverrides', defaultValueOverrides);
-
-const mapArguments =  () => {
-  defaultValueOverrides['resolution'] = lora_config['max_resolution'];
-
-  if (lora_config["LoRA_type"] === 'LoCon' || lora_config["LoRA_type"] === 'LyCORIS/LoCon') {
-    defaultValueOverrides["network_module"] = "lycoris.kohya";
-    defaultValueOverrides["network_args"] = `conv_dim=${lora_config['conv_dim']} conv_alpha=${lora_config['conv_alpha']} algo=locon`;
-  }
-
-  if (lora_config["LoRA_type"] === 'LyCORIS/LoHa') {
-    defaultValueOverrides["network_module"] = "lycoris.kohya";
-    defaultValueOverrides["network_args"] = `conv_dim=${lora_config['conv_dim']} conv_alpha=${lora_config['conv_alpha']} use_cp=${lora_config['use_cp']} algo=loha`;
-    if (lora_config['network_dropout'] > 0) {
-      defaultValueOverrides["network_dropout"] = lora_config['network_dropout'];
+  if (loraConfig["LoRA_type"] === 'LyCORIS/LoHa') {
+    defaultArguments["network_module"] = "lycoris.kohya";
+    defaultArguments["network_args"] = `conv_dim=${loraConfig['conv_dim']} conv_alpha=${loraConfig['conv_alpha']} use_cp=${loraConfig['use_cp']} algo=loha`;
+    if (loraConfig['network_dropout'] > 0) {
+      defaultArguments["network_dropout"] = loraConfig['network_dropout'];
     }
   }
 
-  if (lora_config["LoRA_type"] === 'LyCORIS/iA3') {
-    defaultValueOverrides["network_module"] = "lycoris.kohya";
-    defaultValueOverrides["network_args"] = `conv_dim=${lora_config['conv_dim']} conv_alpha=${lora_config['conv_alpha']} train_on_input=${lora_config['train_on_input']} algo=ia3`;
-    if (lora_config['network_dropout'] > 0) {
-      defaultValueOverrides["network_dropout"] = lora_config['network_dropout'];
+  if (loraConfig["LoRA_type"] === 'LyCORIS/iA3') {
+    defaultArguments["network_module"] = "lycoris.kohya";
+    defaultArguments["network_args"] = `conv_dim=${loraConfig['conv_dim']} conv_alpha=${loraConfig['conv_alpha']} train_on_input=${loraConfig['train_on_input']} algo=ia3`;
+    if (loraConfig['network_dropout'] > 0) {
+      defaultArguments["network_dropout"] = loraConfig['network_dropout'];
     }
   }
 
-  if (lora_config["LoRA_type"] === 'LyCORIS/DyLoRA') {
-    defaultValueOverrides["network_module"] = "lycoris.kohya";
-    defaultValueOverrides["network_args"] = `conv_dim=${lora_config['conv_dim']} conv_alpha=${lora_config['conv_alpha']} use_cp=${lora_config['use_cp']} block_size=${lora_config['unit']} algo=dylora`;
-    if (lora_config['network_dropout'] > 0) {
-      defaultValueOverrides["network_dropout"] = lora_config['network_dropout'];
+  if (loraConfig["LoRA_type"] === 'LyCORIS/DyLoRA') {
+    defaultArguments["network_module"] = "lycoris.kohya";
+    defaultArguments["network_args"] = `conv_dim=${loraConfig['conv_dim']} conv_alpha=${loraConfig['conv_alpha']} use_cp=${loraConfig['use_cp']} block_size=${loraConfig['unit']} algo=dylora`;
+    if (loraConfig['network_dropout'] > 0) {
+      defaultArguments["network_dropout"] = loraConfig['network_dropout'];
     }
   }
 
-  if (lora_config["LoRA_type"] === 'LyCORIS/DyLoRA') {
-    defaultValueOverrides["network_module"] = "lycoris.kohya";
-    defaultValueOverrides["network_args"] = `conv_dim=${lora_config['conv_dim']} conv_alpha=${lora_config['conv_alpha']} use_cp=${lora_config['use_cp']} factor=${lora_config['factor']} algo=lokr`;
-    if (lora_config['network_dropout'] > 0) {
-      defaultValueOverrides["network_dropout"] = lora_config['network_dropout'];
+  if (loraConfig["LoRA_type"] === 'LyCORIS/DyLoRA') {
+    defaultArguments["network_module"] = "lycoris.kohya";
+    defaultArguments["network_args"] = `conv_dim=${loraConfig['conv_dim']} conv_alpha=${loraConfig['conv_alpha']} use_cp=${loraConfig['use_cp']} factor=${loraConfig['factor']} algo=lokr`;
+    if (loraConfig['network_dropout'] > 0) {
+      defaultArguments["network_dropout"] = loraConfig['network_dropout'];
     }
   }
 
-  if (lora_config["LoRA_type"] === 'Kohya LoCon' || lora_config["LoRA_type"] === "Standard" || lora_config["LoRA_type"] === 'LoRA-FA') {
-    if (lora_config["LoRA_type"] === 'LoRA-FA') {
-      defaultValueOverrides["network_module"] = "networks.lora_fa";
+  if (loraConfig["LoRA_type"] === 'Kohya LoCon' || loraConfig["LoRA_type"] === "Standard" || loraConfig["LoRA_type"] === 'LoRA-FA') {
+    if (loraConfig["LoRA_type"] === 'LoRA-FA') {
+      defaultArguments["network_module"] = "networks.lora_fa";
     } else {
-      defaultValueOverrides["network_module"] = "networks.lora";
+      defaultArguments["network_module"] = "networks.lora";
     }
 
     const kohya_lora_var_list = [
@@ -129,14 +131,14 @@ const mapArguments =  () => {
     ]
 
     for (const key of kohya_lora_var_list) {
-      if ((lora_config as any)[key]) {
-        defaultValueOverrides[key] = (lora_config as any)[key];
+      if ((loraConfig as any)[key]) {
+        defaultArguments[key] = (loraConfig as any)[key];
       }
     }
   }
 
-  if (lora_config["LoRA_type"] === 'Kohya DyLoRA') {
-    defaultValueOverrides["network_module"] = "networks.dylora";
+  if (loraConfig["LoRA_type"] === 'Kohya DyLoRA') {
+    defaultArguments["network_module"] = "networks.dylora";
 
     const kohya_lora_var_list = [
       'conv_dim',
@@ -155,34 +157,34 @@ const mapArguments =  () => {
     ]
 
     for (const key of kohya_lora_var_list) {
-      if ((lora_config as any)[key]) {
-        defaultValueOverrides[key] = (lora_config as any)[key];
+      if ((loraConfig as any)[key]) {
+        defaultArguments[key] = (loraConfig as any)[key];
       }
     }
   }
 
-  defaultValueOverrides["network_dim"] = lora_config["network_dim"];
+  defaultArguments["network_dim"] = loraConfig["network_dim"];
 
-  if (lora_config['lora_network_weights'] !== '') {
-    defaultValueOverrides['network_weights'] = lora_config['lora_network_weights'];
+  if (loraConfig['lora_network_weights'] !== '') {
+    defaultArguments['network_weights'] = loraConfig['lora_network_weights'];
   }
 
-  if (lora_config['lr_scheduler_num_cycles'] !== '') {
-    defaultValueOverrides['lr_scheduler_num_cycles'] = lora_config['lr_scheduler_num_cycles'];
+  if (loraConfig['lr_scheduler_num_cycles'] !== '') {
+    defaultArguments['lr_scheduler_num_cycles'] = loraConfig['lr_scheduler_num_cycles'];
   } else {
-    defaultValueOverrides['lr_scheduler_num_cycles'] = lora_config['epoch'];
+    defaultArguments['lr_scheduler_num_cycles'] = loraConfig['epoch'];
   }
 
-  if (lora_config['sdxl_cache_text_encoder_outputs']) {
-    defaultValueOverrides['cache_text_encoder_outputs'] = true;
+  if (loraConfig['sdxl_cache_text_encoder_outputs']) {
+    defaultArguments['cache_text_encoder_outputs'] = true;
   }
 
-  if (lora_config['sdxl_no_half_vae']) {
-    defaultValueOverrides['no_half_vae'] = true;
+  if (loraConfig['sdxl_no_half_vae']) {
+    defaultArguments['no_half_vae'] = true;
   }
 }
 
-mapArguments();
+await mapArguments(defaultValueOverrides, presets["standard.json"]);
 
 const train_network_args = Object.fromEntries(
   Object.entries(train_network_args_raw).filter(([key, value]) => !exclude_args.includes(key))
@@ -326,22 +328,6 @@ let folderPath = debug
   ? ['chilloutmix-Ni-pruned-fp32.safetensors']
   : (await readdir(modelFolders)).filter((x) => x.endsWith('safetensors'));
 // let folderPath = ["chilloutmix-Ni-pruned-fp32.safetensors"]
-
-const train_network_args_values = Object.fromEntries(Object.entries(train_network_args).map(([key, param]) => {
-  return [key, param.default]
-}))
-// console.log(train_network_args_values);
-
-const presets = {
-  "man": {
-    name: "man",
-    ...train_network_args_values
-  },
-  "girl": {
-    name: "girl",
-    ...train_network_args_values
-  }
-}
 
 function Component({sessionId}: { sessionId: string }) {
   return (
@@ -914,7 +900,8 @@ Bun.serve<WebSocketData>({
 
     for (const key in presets) {
       if (url.pathname === '/' + key + '.json') {
-        return new Response(JSON.stringify((presets as any)[key]), {
+        const data = await Bun.file(presets[key]).json();
+        return new Response(JSON.stringify(data), {
           headers: {
             'Content-Type': 'application/json',
           },

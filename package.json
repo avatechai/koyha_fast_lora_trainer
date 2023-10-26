@@ -3,7 +3,7 @@
   "module": "./src/index.tsx",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"bun run --hot ./src/index.tsx\" \"bunx tailwindcss -i ./index.css -o ./output.css --watch\"",
+    "dev": "concurrently \"bun run --hot ./src/index.tsx --ckpt-dir /home/avatech/Desktop/projects/stable-diffusion-webui/models/Stable-diffusion\" \"bunx tailwindcss -i ./index.css -o ./output.css --watch\"",
     "dev-dry": "concurrently \"bun run --hot ./src/index.tsx --debug\" \"bunx tailwindcss -i ./index.css -o ./output.css --watch\"",
     "start": "bunx tailwindcss -i ./index.css -o ./output.css && bun run ./src/index.tsx",
     "extract-args": "source \"kohya_ss/venv/bin/activate\" && python get_args.py"

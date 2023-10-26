@@ -1,5 +1,5 @@
 {
-  "LoRA_type": "LyCORIS/LoCon",
+  "LoRA_type": "Standard",
   "adaptive_noise_scale": 0,
   "additional_parameters": "",
   "block_alphas": "",
@@ -93,7 +93,7 @@
   "shuffle_caption": false,
   "stop_text_encoder_training": 0,
   "text_encoder_lr": 1.0,
-  "train_batch_size": 4,
+  "train_batch_size": 1,
   "train_data_dir": "",
   "train_on_input": true,
   "training_comment": "",
