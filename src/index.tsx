@@ -1,24 +1,16 @@
-import { ServerWebSocket, Subprocess } from 'bun';
+import { ServerWebSocket } from 'bun';
 import { renderToReadableStream, renderToString } from 'react-dom/server';
 import { mkdir, readdir } from 'fs/promises';
 import { VscChevronDown } from 'react-icons/vsc'
 import {
   ChildProcess,
-  ChildProcessWithoutNullStreams,
   spawn,
-  spawnSync,
 } from 'child_process';
-import { dirname, extname, join, relative } from 'path';
-// import { cache } from 'react'
+import { dirname, extname, join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import chokidar from 'chokidar';
-import { exists, readFileSync } from 'fs';
-import { argv } from 'process';
-
 import { getHighlighter } from 'shikiji';
-import { render } from 'react-dom';
 import React, { ReactElement } from 'react';
-
 import { Command } from 'commander';
 
 import train_network_args_raw from './args/train_network_args.json'
@@ -136,14 +128,15 @@ const allPlugins = (await Promise.all(pluginFiles.map(x => import('./plugins/' +
 const program = new Command();
 
 program.option('--ckpt-dir')
+program.option('--debug')
 program.parse();
 
-
-export let debug = (argv.length >= 3 && argv[2] == '--debug') ?? false;
+const options = program.opts();
+export let debug = options.debug ? true : false
 
 export let checkpoints = program.args[0]
 
-if(!checkpoints) {
+if(!checkpoints && !debug) {
   console.error('ckpt dir cannot be null!')
   process.exit()
 }
@@ -211,6 +204,15 @@ let folderPath = debug
   : (await readdir(modelFolders)).filter((x) => x.endsWith('safetensors'));
 // let folderPath = ["chilloutmix-Ni-pruned-fp32.safetensors"]
 
+const presets = {
+  "man": {
+    name: "man"
+  },
+  "girl": {
+    name: "girl"
+  }
+}
+
 function Component({sessionId}: { sessionId: string }) {
   return (
     <html>
@@ -222,11 +224,13 @@ function Component({sessionId}: { sessionId: string }) {
         <script src="https://unpkg.com/hyperscript.org@0.9.11"></script>
         <script src="https://unpkg.com/htmx.org/dist/ext/ws.js"></script>
         <script src="https://unpkg.com/htmx.org/dist/ext/debug.js"></script>
+        <script src="./utils"></script>
       </head>
       <body>
         <div className="absolute inset-0 -z-10 h-full w-full bg-white bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]"></div>
         <div className="flex h-[100dvh]">
           <div className="flex flex-col items-center px-2 w-[310px] min-w-[310px]">
+            <div className='flex items-center justify-between w-full'>
             <h1
               hx-ext="ws"
               ws-connect={`/ws?sessionId=${sessionId}`}
@@ -234,6 +238,27 @@ function Component({sessionId}: { sessionId: string }) {
             >
               Fast Lora Trainer
             </h1>
+            <div className="dropdown dropdown-end">
+            <label
+              tabIndex={0}
+              className="text-xs font-bold m-1 cursor-pointer hover:ring-1 rounded-xl px-1 ring-gray-400 flex items-center gap-2"
+            >
+              Preset <VscChevronDown />
+            </label>
+            <ul
+              tabIndex={0}
+              className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-fit"
+            >
+              {
+                Object.entries(presets).map(([key, x]) => <li>
+                  <a _={`on click call applyPreset('form', '${JSON.stringify(x)}') call document.activeElement.blur()`}>
+                    {key}
+                  </a>
+                </li>)
+              }
+            </ul>
+          </div>
+            </div>
             {/* <form > */}
             <form
               id="form"
@@ -747,6 +772,12 @@ Bun.serve<WebSocketData>({
       return new Response(Bun.file('output.css'), {
         headers: {
           'Content-Type': 'text/css',
+        },
+      });
+    } else if (url.pathname === '/utils') {
+      return new Response(Bun.file('src/utils.js'), {
+        headers: {
+          'Content-Type': 'text/javascript',
         },
       });
     }
